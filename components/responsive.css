@@ -1,0 +1,73 @@
+/* Fix for tap highlight color artifact on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Base styles for transition */
+.sidebar-close-btn,
+.sidebar-nav-link,
+.sidebar-profile-link,
+.sidebar-logout-btn {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Hover styles only for devices that support hover (desktop/mouse) */
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-close-btn:hover {
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .sidebar-nav-link:not(.active):hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #f1f5f9 !important;
+  }
+
+  .sidebar-profile-link:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .sidebar-profile-link:hover .profile-icon-wrapper {
+    background-color: #165b4c !important;
+  }
+  
+  .sidebar-profile-link:hover .profile-icon {
+    color: white !important;
+  }
+  
+  .sidebar-profile-link:hover .settings-text {
+    color: #34d399 !important;
+  }
+
+  .sidebar-logout-btn:hover {
+    background-color: rgba(244, 63, 94, 0.1) !important;
+    color: #fda4af !important;
+  }
+
+  .sidebar-logout-btn:hover .logout-icon {
+    transform: translateX(0.25rem);
+  }
+}
+
+/* Active styles for touch feedback on mobile/touch devices */
+.sidebar-close-btn:active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  transform: scale(0.95);
+}
+
+.sidebar-nav-link:not(.active):active {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  transform: scale(0.98);
+}
+
+.sidebar-profile-link:active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  transform: scale(0.97);
+}
+
+.sidebar-logout-btn:active {
+  background-color: rgba(244, 63, 94, 0.2) !important;
+  transform: scale(0.97);
+}

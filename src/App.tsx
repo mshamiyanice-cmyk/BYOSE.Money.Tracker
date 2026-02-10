@@ -1,0 +1,194 @@
+
+import { auth, db } from './services/firebase';
+import { generateUUID } from './lib/utils';
+import firebase from 'firebase/compat/app';
+import React, { useState, useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Inflow, Outflow, Overdraft, UserProfile } from './types';
+import Dashboard from './components/Dashboard';
+import CalendarView from './components/CalendarView';
+import InflowManager from './components/InflowManager';
+import OutflowManager from './components/OutflowManager';
+import OverdraftManager from './components/OverdraftManager';
+import FlowTracker from './components/FlowTracker';
+import UnifiedLedger from './components/UnifiedLedger';
+import Sidebar from './components/Sidebar';
+import Auth from './components/AnimatedLogin';
+import Profile from './components/Profile';
+
+import { Menu, LogOut } from 'lucide-react';
+
+const ADMIN_EMAILS = ['mshamiyanice@gmail.com', 'gakundohope5@gmail.com'];
+
+const App: React.FC = () => {
+  const [user, setUser] = useState<firebase.User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const [inflows, setInflows] = useState<Inflow[]>([]);
+  const [outflows, setOutflows] = useState<Outflow[]>([]);
+  const [overdrafts, setOverdrafts] = useState<Overdraft[]>([]);
+
+  const isAdmin = user ? ADMIN_EMAILS.includes(user.email || '') : false;
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      if (currentUser && currentUser.emailVerified) {
+        setUser(currentUser);
+        await syncUserProfile(currentUser);
+      } else {
+        setUser(null);
+        setProfile(null);
+        setInflows([]);
+        setOutflows([]);
+        setOverdrafts([]);
+      }
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const userRef = db.collection('users').doc(user.uid);
+    const unsubInflows = userRef.collection('inflows').onSnapshot(snapshot => {
+      setInflows(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Inflow)));
+    });
+    const unsubOutflows = userRef.collection('outflows').onSnapshot(snapshot => {
+      setOutflows(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Outflow)));
+    });
+    const unsubOverdrafts = userRef.collection('overdrafts').onSnapshot(snapshot => {
+      setOverdrafts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Overdraft)));
+    });
+    return () => { unsubInflows(); unsubOutflows(); unsubOverdrafts(); };
+  }, [user?.uid]);
+
+  const syncUserProfile = async (firebaseUser: firebase.User) => {
+    try {
+      const userDocRef = db.collection('users').doc(firebaseUser.uid);
+      const userDoc = await userDocRef.get();
+      if (userDoc.exists) {
+        setProfile(userDoc.data() as UserProfile);
+      } else {
+        const profileData: UserProfile = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || 'BYOSE Tech Member',
+          email: firebaseUser.email || '',
+          photoFileName: 'default_avatar.png',
+          createdAt: new Date().toISOString()
+        };
+        await userDocRef.set(profileData);
+        setProfile(profileData);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleLogout = async () => { try { await auth.signOut(); } catch (err) { console.error(err); } };
+
+  const addInflow = async (inflow: Inflow) => {
+    if (!isAdmin || !user) return;
+    await db.collection('users').doc(user.uid).collection('inflows').doc(inflow.id).set(inflow);
+  };
+
+  const updateInflow = async (updatedInflow: Inflow) => {
+    if (!isAdmin || !user) return;
+    await db.collection('users').doc(user.uid).collection('inflows').doc(updatedInflow.id).update(updatedInflow as any);
+  };
+
+  const addOutflow = async (outflow: Outflow) => {
+    if (!isAdmin || !user) return;
+    const userRef = db.collection('users').doc(user.uid);
+    const inflowRef = userRef.collection('inflows').doc(outflow.inflowId);
+    const inflowDoc = await inflowRef.get();
+    if (inflowDoc.exists) {
+      const inflowData = inflowDoc.data() as Inflow;
+      await inflowRef.update({ remainingBalance: inflowData.remainingBalance - outflow.amount });
+    }
+    await userRef.collection('outflows').doc(outflow.id).set(outflow);
+  };
+
+  const addOverdraft = async (overdraft: Overdraft) => {
+    if (!isAdmin || !user) return;
+    await db.collection('users').doc(user.uid).collection('overdrafts').doc(overdraft.id).set(overdraft);
+  };
+
+  const settleOverdraft = async (overdraftId: string, inflowId: string) => {
+    if (!isAdmin || !user) return;
+    const od = overdrafts.find(o => o.id === overdraftId);
+    if (!od) return;
+    const userRef = db.collection('users').doc(user.uid);
+    const inflowRef = userRef.collection('inflows').doc(inflowId);
+    const infDoc = await inflowRef.get();
+    if (infDoc.exists) {
+      const infData = infDoc.data() as Inflow;
+      await inflowRef.update({ remainingBalance: infData.remainingBalance - od.amount });
+      await userRef.collection('outflows').add({
+        id: generateUUID(),
+        date: new Date().toISOString().split('T')[0],
+        purpose: `Settle: ${od.purpose}`,
+        category: 'Misc',
+        amount: od.amount,
+        seller: od.seller,
+        inflowId: inflowId,
+        expenseName: 'Overdraft Settle'
+      });
+      await userRef.collection('overdrafts').doc(overdraftId).update({ isSettled: true, settledWithInflowId: inflowId });
+    }
+  };
+
+  const deleteInflow = async (id: string) => {
+    if (!isAdmin || !user) return;
+    await db.collection('users').doc(user.uid).collection('inflows').doc(id).delete();
+  };
+
+  const deleteOutflow = async (id: string) => {
+    if (!isAdmin || !user) return;
+    const out = outflows.find(o => o.id === id);
+    if (!out) return;
+    const userRef = db.collection('users').doc(user.uid);
+    const infRef = userRef.collection('inflows').doc(out.inflowId);
+    const infDoc = await infRef.get();
+    if (infDoc.exists) {
+      const infData = infDoc.data() as Inflow;
+      await infRef.update({ remainingBalance: infData.remainingBalance + out.amount });
+    }
+    await userRef.collection('outflows').doc(id).delete();
+  };
+
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-[#165b4c] border-t-transparent rounded-full animate-spin"></div></div>;
+  if (!user) return <Auth />;
+
+  return (
+    <Router>
+      <div className="flex min-h-screen bg-slate-50 text-slate-900">
+        <Sidebar
+          userEmail={user.email} inflows={inflows} overdrafts={overdrafts} isAdmin={isAdmin} profile={profile}
+          isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
+        />
+        <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-24 lg:pt-8">
+          <div className="lg:hidden fixed top-0 left-0 right-0 h-20 bg-white border-b z-50 flex items-center justify-between px-6">
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600"><Menu size={28} /></button>
+            <div className="flex flex-col items-center"><span className="text-xs font-black tracking-widest text-[#165b4c]">BYOSE</span></div>
+            <button onClick={handleLogout} className="p-2 text-rose-500"><LogOut size={24} /></button>
+          </div>
+
+          <Routes>
+            <Route path="/" element={<Dashboard inflows={inflows} outflows={outflows} />} />
+            <Route path="/ledger" element={<UnifiedLedger inflows={inflows} outflows={outflows} overdrafts={overdrafts} />} />
+            <Route path="/calendar" element={<CalendarView inflows={inflows} outflows={outflows} />} />
+            <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} />} />
+            <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
+            <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onSettle={settleOverdraft} onDelete={() => { }} isAdmin={isAdmin} />} />
+            <Route path="/tracker" element={<FlowTracker inflows={inflows} outflows={outflows} />} />
+
+            <Route path="/profile" element={<Profile user={user} profile={profile} onUpdate={setProfile} />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
+  );
+};
+
+export default App;
