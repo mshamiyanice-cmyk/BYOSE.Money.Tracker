@@ -5,177 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Mail, Sparkles, User, CheckCircle } from "lucide-react";
+import { auth, db } from "../services/firebase"; // Assuming db is exported from firebase service for user document creation
+import logo from '../../asset/logo.jpg';
+import { Link, useNavigate } from 'react-router-dom';
+
+import { Pupil, EyeBall } from "./ui/AuthEyes";
 
 
-interface PupilProps {
-    size?: number;
-    maxDistance?: number;
-    pupilColor?: string;
-    forceLookX?: number;
-    forceLookY?: number;
-}
-
-const Pupil = ({
-    size = 12,
-    maxDistance = 5,
-    pupilColor = "black",
-    forceLookX,
-    forceLookY
-}: PupilProps) => {
-    const [mouseX, setMouseX] = useState<number>(0);
-    const [mouseY, setMouseY] = useState<number>(0);
-    const pupilRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMouseX(e.clientX);
-            setMouseY(e.clientY);
-        };
-
-        window.addEventListener("mousemove", handleMouseMove);
-
-        return () => {
-            window.removeEventListener("mousemove", handleMouseMove);
-        };
-    }, []);
-
-    const calculatePupilPosition = () => {
-        if (!pupilRef.current) return { x: 0, y: 0 };
-
-        // If forced look direction is provided, use that instead of mouse tracking
-        if (forceLookX !== undefined && forceLookY !== undefined) {
-            return { x: forceLookX, y: forceLookY };
-        }
-
-        const pupil = pupilRef.current.getBoundingClientRect();
-        const pupilCenterX = pupil.left + pupil.width / 2;
-        const pupilCenterY = pupil.top + pupil.height / 2;
-
-        const deltaX = mouseX - pupilCenterX;
-        const deltaY = mouseY - pupilCenterY;
-        const distance = Math.min(Math.sqrt(deltaX ** 2 + deltaY ** 2), maxDistance);
-
-        const angle = Math.atan2(deltaY, deltaX);
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance;
-
-        return { x, y };
-    };
-
-    const pupilPosition = calculatePupilPosition();
-
-    return (
-        <div
-            ref={pupilRef}
-            className="rounded-full"
-            style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                backgroundColor: pupilColor,
-                transform: `translate(${pupilPosition.x}px, ${pupilPosition.y}px)`,
-                transition: 'transform 0.1s ease-out',
-            }}
-        />
-    );
-};
-
-
-
-
-interface EyeBallProps {
-    size?: number;
-    pupilSize?: number;
-    maxDistance?: number;
-    eyeColor?: string;
-    pupilColor?: string;
-    isBlinking?: boolean;
-    forceLookX?: number;
-    forceLookY?: number;
-}
-
-const EyeBall = ({
-    size = 48,
-    pupilSize = 16,
-    maxDistance = 10,
-    eyeColor = "white",
-    pupilColor = "black",
-    isBlinking = false,
-    forceLookX,
-    forceLookY
-}: EyeBallProps) => {
-    const [mouseX, setMouseX] = useState<number>(0);
-    const [mouseY, setMouseY] = useState<number>(0);
-    const eyeRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMouseX(e.clientX);
-            setMouseY(e.clientY);
-        };
-
-        window.addEventListener("mousemove", handleMouseMove);
-
-        return () => {
-            window.removeEventListener("mousemove", handleMouseMove);
-        };
-    }, []);
-
-    const calculatePupilPosition = () => {
-        if (!eyeRef.current) return { x: 0, y: 0 };
-
-        // If forced look direction is provided, use that instead of mouse tracking
-        if (forceLookX !== undefined && forceLookY !== undefined) {
-            return { x: forceLookX, y: forceLookY };
-        }
-
-        const eye = eyeRef.current.getBoundingClientRect();
-        const eyeCenterX = eye.left + eye.width / 2;
-        const eyeCenterY = eye.top + eye.height / 2;
-
-        const deltaX = mouseX - eyeCenterX;
-        const deltaY = mouseY - eyeCenterY;
-        const distance = Math.min(Math.sqrt(deltaX ** 2 + deltaY ** 2), maxDistance);
-
-        const angle = Math.atan2(deltaY, deltaX);
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance;
-
-        return { x, y };
-    };
-
-    const pupilPosition = calculatePupilPosition();
-
-    return (
-        <div
-            ref={eyeRef}
-            className="rounded-full flex items-center justify-center transition-all duration-150"
-            style={{
-                width: `${size}px`,
-                height: isBlinking ? '2px' : `${size}px`,
-                backgroundColor: eyeColor,
-                overflow: 'hidden',
-            }}
-        >
-            {!isBlinking && (
-                <div
-                    className="rounded-full"
-                    style={{
-                        width: `${pupilSize}px`,
-                        height: `${pupilSize}px`,
-                        backgroundColor: pupilColor,
-                        transform: `translate(${pupilPosition.x}px, ${pupilPosition.y}px)`,
-                        transition: 'transform 0.1s ease-out',
-                    }}
-                />
-            )}
-        </div>
-    );
-};
-
-
-const AnimatedLogin: React.FC = () => {
+const AnimatedSignUp: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -191,6 +31,9 @@ const AnimatedLogin: React.FC = () => {
     const blackRef = useRef<HTMLDivElement>(null);
     const yellowRef = useRef<HTMLDivElement>(null);
     const orangeRef = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
+
+    const [verificationEmailSentTo, setVerificationEmailSentTo] = useState<string | null>(null);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -204,7 +47,7 @@ const AnimatedLogin: React.FC = () => {
 
     // Blinking effect for purple character
     useEffect(() => {
-        const getRandomBlinkInterval = () => Math.random() * 4000 + 3000; // Random between 3-7 seconds
+        const getRandomBlinkInterval = () => Math.random() * 4000 + 3000;
 
         const scheduleBlink = () => {
             const blinkTimeout = setTimeout(() => {
@@ -212,7 +55,7 @@ const AnimatedLogin: React.FC = () => {
                 setTimeout(() => {
                     setIsPurpleBlinking(false);
                     scheduleBlink();
-                }, 150); // Blink duration 150ms
+                }, 150);
             }, getRandomBlinkInterval());
 
             return blinkTimeout;
@@ -224,7 +67,7 @@ const AnimatedLogin: React.FC = () => {
 
     // Blinking effect for black character
     useEffect(() => {
-        const getRandomBlinkInterval = () => Math.random() * 4000 + 3000; // Random between 3-7 seconds
+        const getRandomBlinkInterval = () => Math.random() * 4000 + 3000;
 
         const scheduleBlink = () => {
             const blinkTimeout = setTimeout(() => {
@@ -232,7 +75,7 @@ const AnimatedLogin: React.FC = () => {
                 setTimeout(() => {
                     setIsBlackBlinking(false);
                     scheduleBlink();
-                }, 150); // Blink duration 150ms
+                }, 150);
             }, getRandomBlinkInterval());
 
             return blinkTimeout;
@@ -244,11 +87,16 @@ const AnimatedLogin: React.FC = () => {
 
     // Looking at each other animation when typing starts
     useEffect(() => {
+        const anyTyping = isTyping || name.length > 0 || email.length > 0;
+        if (anyTyping && !isLookingAtEachOther) {
+            // Logic adjusted slightly to not look constantly, but the original logic works well enough for "start of typing"
+        }
+
         if (isTyping) {
             setIsLookingAtEachOther(true);
             const timer = setTimeout(() => {
                 setIsLookingAtEachOther(false);
-            }, 800); // Look at each other for 1.5 seconds, then back to tracking mouse
+            }, 800);
             return () => clearTimeout(timer);
         } else {
             setIsLookingAtEachOther(false);
@@ -263,8 +111,8 @@ const AnimatedLogin: React.FC = () => {
                     setIsPurplePeeking(true);
                     setTimeout(() => {
                         setIsPurplePeeking(false);
-                    }, 800); // Peek for 800ms
-                }, Math.random() * 3000 + 2000); // Random peek every 2-5 seconds
+                    }, 800);
+                }, Math.random() * 3000 + 2000);
                 return peekInterval;
             };
 
@@ -276,20 +124,17 @@ const AnimatedLogin: React.FC = () => {
     }, [password, showPassword, isPurplePeeking]);
 
     const calculatePosition = (ref: React.RefObject<HTMLDivElement | null>) => {
-        if (!ref.current) return { faceX: 0, faceY: 0, bodyRotation: 0 };
+        if (!ref.current) return { faceX: 0, faceY: 0, bodySkew: 0 };
 
         const rect = ref.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 3; // Focus on head area
+        const centerY = rect.top + rect.height / 3;
 
         const deltaX = mouseX - centerX;
         const deltaY = mouseY - centerY;
 
-        // Face movement (limited range)
         const faceX = Math.max(-15, Math.min(15, deltaX / 20));
         const faceY = Math.max(-10, Math.min(10, deltaY / 30));
-
-        // Body lean (skew for lean while keeping bottom straight) - negative to lean towards mouse
         const bodySkew = Math.max(-6, Math.min(6, -deltaX / 120));
 
         return { faceX, faceY, bodySkew };
@@ -302,26 +147,75 @@ const AnimatedLogin: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("Submit button clicked");
         setError("");
         setIsLoading(true);
 
-        // Simulate API delay (quick)
-        await new Promise(resolve => setTimeout(resolve, 300));
+        try {
+            console.log("Attempting to create user with:", email);
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            console.log("User created in Auth:", userCredential.user?.uid);
 
-        // Mock authentication - validate against dummy credentials
-        if (email === "erik@gmail.com" && password === "1234") {
-            console.log("✅ Login successful!");
-            alert("Login successful! Welcome, Erik!");
-            // In a real app, you would:
-            // - Store auth token
-            // - Redirect to dashboard
-            // - Set user session
-        } else {
-            setError("Invalid email or password. Please try again.");
-            console.log("❌ Login failed");
+            if (userCredential.user) {
+                // Update profile with name
+                if (name) {
+                    try {
+                        await userCredential.user.updateProfile({
+                            displayName: name
+                        });
+                        console.log("Profile updated");
+                    } catch (profileErr) {
+                        console.error("Profile update error:", profileErr);
+                    }
+                }
+
+                // Create user document in Firestore regardless of name
+                try {
+                    console.log("Creating Firestore document...");
+                    await db.collection('users').doc(userCredential.user.uid).set({
+                        uid: userCredential.user.uid,
+                        name: name || 'New User',
+                        email: email,
+                        photoFileName: 'default_avatar.png',
+                        createdAt: new Date().toISOString()
+                    });
+                    console.log("Firestore document created");
+                } catch (dbErr) {
+                    console.error("Firestore error:", dbErr);
+                    // We don't stop flow if DB fails, but we should log it
+                }
+
+                // Send Verification Email
+                try {
+                    await userCredential.user.sendEmailVerification();
+                    console.log("Verification email sent");
+                } catch (emailErr) {
+                    console.error("Email verification error:", emailErr);
+                }
+
+                const sentTo = userCredential.user.email;
+                await auth.signOut();
+                console.log("User signed out");
+
+                setVerificationEmailSentTo(sentTo || email);
+                console.log("✅ Account created & Verification Sent!");
+            }
+        } catch (err: any) {
+            console.error("❌ Registration failed", err);
+            let errorMessage = "Failed to create account. Please try again.";
+            if (err.code === 'auth/email-already-in-use') {
+                errorMessage = "This email is already in use.";
+            } else if (err.code === 'auth/weak-password') {
+                errorMessage = "Password should be at least 6 characters.";
+            } else if (err.code === 'auth/invalid-email') {
+                errorMessage = "Invalid email address.";
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+            setError(errorMessage);
+        } finally {
+            setIsLoading(false);
         }
-
-        setIsLoading(false);
     };
 
     return (
@@ -527,7 +421,12 @@ const AnimatedLogin: React.FC = () => {
             </div>
 
             {/* Right Login Section */}
-            <div className="flex items-center justify-center p-8 bg-background">
+            <div className="flex items-center justify-center p-8 bg-background relative">
+                {/* Fixed Logo in Top-Right Corner */}
+                <div className="absolute top-6 right-6 flex flex-col items-center">
+                    <img src={logo} alt="Company Logo" className="w-16 h-16 rounded-full border-2 border-slate-100 shadow-sm" />
+                </div>
+
                 <div className="w-full max-w-[420px]">
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12">
@@ -537,113 +436,145 @@ const AnimatedLogin: React.FC = () => {
                         <span>YourBrand</span>
                     </div>
 
-                    {/* Header */}
-                    <div className="text-center mb-10">
-                        <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome back!</h1>
-                        <p className="text-muted-foreground text-sm">Please enter your details</p>
-                    </div>
-
-                    {/* Login Form */}
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="anna@gmail.com"
-                                value={email}
-                                autoComplete="off"
-                                onChange={(e) => setEmail(e.target.value)}
-                                onFocus={() => setIsTyping(true)}
-                                onBlur={() => setIsTyping(false)}
-                                required
-                                className="h-12 bg-background border-border/60 focus:border-primary"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    className="h-12 pr-10 bg-background border-border/60 focus:border-primary"
-                                />
+                    {verificationEmailSentTo ? (
+                        <div className="text-center animate-in fade-in duration-500">
+                            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <CheckCircle className="text-[#165b4c]" size={40} />
+                            </div>
+                            <h2 className="text-2xl font-bold tracking-tight mb-4">Verify Your Email</h2>
+                            <p className="text-muted-foreground mb-8 leading-relaxed">
+                                We sent a verification link to <span className="font-semibold text-foreground">{verificationEmailSentTo}</span>.
+                                <br />Please check your inbox.
+                            </p>
+                            <div className="flex flex-col gap-4">
+                                <Link to="/login">
+                                    <Button className="w-full h-12 text-base font-medium" size="lg">
+                                        Back to Login
+                                    </Button>
+                                </Link>
                                 <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    onClick={() => setVerificationEmailSentTo(null)}
+                                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    {showPassword ? (
-                                        <EyeOff className="size-5" />
-                                    ) : (
-                                        <Eye className="size-5" />
-                                    )}
+                                    Use a different email
                                 </button>
                             </div>
                         </div>
+                    ) : (
+                        <>
+                            {/* Header */}
+                            <div className="text-center mb-10">
+                                <h1 className="text-3xl font-bold tracking-tight mb-2">Create an account</h1>
+                                <p className="text-muted-foreground text-sm">Join us to track your finances</p>
+                            </div>
 
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="remember" />
-                                <Label
-                                    htmlFor="remember"
-                                    className="text-sm font-normal cursor-pointer"
+                            {/* Sign Up Form */}
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                                    <Input
+                                        id="name"
+                                        type="text"
+                                        placeholder="John Doe"
+                                        value={name}
+                                        autoComplete="name"
+                                        onChange={(e) => setName(e.target.value)}
+                                        onFocus={() => setIsTyping(true)}
+                                        onBlur={() => setIsTyping(false)}
+                                        required
+                                        className="h-12 bg-background border-border/60 focus:border-primary"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="anna@gmail.com"
+                                        value={email}
+                                        autoComplete="email"
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        onFocus={() => setIsTyping(true)}
+                                        onBlur={() => setIsTyping(false)}
+                                        required
+                                        className="h-12 bg-background border-border/60 focus:border-primary"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                            className="h-12 pr-10 bg-background border-border/60 focus:border-primary"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="size-5" />
+                                            ) : (
+                                                <Eye className="size-5" />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox id="terms" required />
+                                    <Label htmlFor="terms" className="text-xs font-normal cursor-pointer text-muted-foreground">
+                                        I agree to the <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>
+                                    </Label>
+                                </div>
+
+                                {error && (
+                                    <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <Button
+                                    type="submit"
+                                    className="w-full h-12 text-base font-medium"
+                                    size="lg"
+                                    disabled={isLoading}
                                 >
-                                    Remember for 30 days
-                                </Label>
+                                    {isLoading ? "Creating account..." : "Sign up"}
+                                </Button>
+                            </form>
+
+                            {/* Social Login */}
+                            <div className="mt-6">
+                                <Button
+                                    variant="outline"
+                                    className="w-full h-12 bg-background border-border/60 hover:bg-accent"
+                                    type="button"
+                                >
+                                    <Mail className="mr-2 size-5" />
+                                    Sign up with Google
+                                </Button>
                             </div>
-                            <a
-                                href="#"
-                                className="text-sm text-primary hover:underline font-medium"
-                            >
-                                Forgot password?
-                            </a>
-                        </div>
 
-                        {error && (
-                            <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg">
-                                {error}
+                            <div className="text-center text-sm text-muted-foreground mt-8">
+                                Already have an account?{" "}
+                                <Link to="/login" className="text-foreground font-medium hover:underline">
+                                    Log in
+                                </Link>
                             </div>
-                        )}
-
-                        <Button
-                            type="submit"
-                            className="w-full h-12 text-base font-medium"
-                            size="lg"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? "Signing in..." : "Log in"}
-                        </Button>
-                    </form>
-
-                    {/* Social Login */}
-                    <div className="mt-6">
-                        <Button
-                            variant="outline"
-                            className="w-full h-12 bg-background border-border/60 hover:bg-accent"
-                            type="button"
-                        >
-                            <Mail className="mr-2 size-5" />
-                            Log in with Google
-                        </Button>
-                    </div>
-
-                    {/* Sign Up Link */}
-                    <div className="text-center text-sm text-muted-foreground mt-8">
-                        Don't have an account?{" "}
-                        <a href="#" className="text-foreground font-medium hover:underline">
-                            Sign Up
-                        </a>
-                    </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
     );
 }
 
-export default AnimatedLogin;
+export default AnimatedSignUp;

@@ -1,5 +1,5 @@
 
-import { auth, db } from './services/firebase';
+import { auth, db, COMPANY_ID } from './services/firebase';
 import { generateUUID } from './lib/utils';
 import firebase from 'firebase/compat/app';
 import React, { useState, useEffect } from 'react';
@@ -14,6 +14,7 @@ import FlowTracker from './components/FlowTracker';
 import UnifiedLedger from './components/UnifiedLedger';
 import Sidebar from './components/Sidebar';
 import Auth from './components/AnimatedLogin';
+import AnimatedSignUp from './components/AnimatedSignUp';
 import Profile from './components/Profile';
 
 import { Menu, LogOut } from 'lucide-react';
@@ -51,14 +52,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!user?.uid) return;
-    const userRef = db.collection('users').doc(user.uid);
-    const unsubInflows = userRef.collection('inflows').onSnapshot(snapshot => {
+
+    // Switch to Shared Company Ledger
+    // const userRef = db.collection('users').doc(user.uid); -> OLD
+    const companyRef = db.collection('companies').doc('byose_tech_main'); // Hardcoded ID matching firebase.ts export
+
+    const unsubInflows = companyRef.collection('inflows').onSnapshot(snapshot => {
       setInflows(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Inflow)));
     });
-    const unsubOutflows = userRef.collection('outflows').onSnapshot(snapshot => {
+    const unsubOutflows = companyRef.collection('outflows').onSnapshot(snapshot => {
       setOutflows(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Outflow)));
     });
-    const unsubOverdrafts = userRef.collection('overdrafts').onSnapshot(snapshot => {
+    const unsubOverdrafts = companyRef.collection('overdrafts').onSnapshot(snapshot => {
       setOverdrafts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Overdraft)));
     });
     return () => { unsubInflows(); unsubOutflows(); unsubOverdrafts(); };
@@ -66,6 +71,7 @@ const App: React.FC = () => {
 
   const syncUserProfile = async (firebaseUser: firebase.User) => {
     try {
+      // User Profiles remain personal
       const userDocRef = db.collection('users').doc(firebaseUser.uid);
       const userDoc = await userDocRef.get();
       if (userDoc.exists) {
@@ -88,104 +94,150 @@ const App: React.FC = () => {
 
   const addInflow = async (inflow: Inflow) => {
     if (!isAdmin || !user) return;
-    await db.collection('users').doc(user.uid).collection('inflows').doc(inflow.id).set(inflow);
+    await db.collection('companies').doc('byose_tech_main').collection('inflows').doc(inflow.id).set(inflow);
   };
 
   const updateInflow = async (updatedInflow: Inflow) => {
     if (!isAdmin || !user) return;
-    await db.collection('users').doc(user.uid).collection('inflows').doc(updatedInflow.id).update(updatedInflow as any);
+    await db.collection('companies').doc('byose_tech_main').collection('inflows').doc(updatedInflow.id).update(updatedInflow as any);
   };
 
   const addOutflow = async (outflow: Outflow) => {
     if (!isAdmin || !user) return;
-    const userRef = db.collection('users').doc(user.uid);
-    const inflowRef = userRef.collection('inflows').doc(outflow.inflowId);
+    const companyRef = db.collection('companies').doc('byose_tech_main');
+    const inflowRef = companyRef.collection('inflows').doc(outflow.inflowId);
     const inflowDoc = await inflowRef.get();
     if (inflowDoc.exists) {
       const inflowData = inflowDoc.data() as Inflow;
       await inflowRef.update({ remainingBalance: inflowData.remainingBalance - outflow.amount });
     }
-    await userRef.collection('outflows').doc(outflow.id).set(outflow);
+    await companyRef.collection('outflows').doc(outflow.id).set(outflow);
   };
 
   const addOverdraft = async (overdraft: Overdraft) => {
     if (!isAdmin || !user) return;
-    await db.collection('users').doc(user.uid).collection('overdrafts').doc(overdraft.id).set(overdraft);
+    await db.collection('companies').doc('byose_tech_main').collection('overdrafts').doc(overdraft.id).set(overdraft);
   };
 
   const settleOverdraft = async (overdraftId: string, inflowId: string) => {
     if (!isAdmin || !user) return;
     const od = overdrafts.find(o => o.id === overdraftId);
     if (!od) return;
-    const userRef = db.collection('users').doc(user.uid);
-    const inflowRef = userRef.collection('inflows').doc(inflowId);
+
+    // Check if Inflow exists and has balance
+    const companyRef = db.collection('companies').doc(COMPANY_ID);
+    const inflowRef = companyRef.collection('inflows').doc(inflowId);
     const infDoc = await inflowRef.get();
+
     if (infDoc.exists) {
       const infData = infDoc.data() as Inflow;
-      await inflowRef.update({ remainingBalance: infData.remainingBalance - od.amount });
-      await userRef.collection('outflows').add({
+
+      // Calculate how much we can pay
+      // We can pay up to the Inflow's remaining balance
+      const maxPayable = infData.remainingBalance;
+
+      if (maxPayable <= 0) {
+        alert("Selected inflow has no funds available.");
+        return;
+      }
+
+      // The actual payment is the lesser of: The Debt Amount vs The Available Funds
+      const paymentAmount = Math.min(od.amount, maxPayable);
+
+      // 1. Deduct from Inflow
+      await inflowRef.update({ remainingBalance: infData.remainingBalance - paymentAmount });
+
+      // 2. Log Outflow for this payment
+      await companyRef.collection('outflows').add({
         id: generateUUID(),
         date: new Date().toISOString().split('T')[0],
-        purpose: `Settle: ${od.purpose}`,
+        purpose: paymentAmount < od.amount ? `Partial Settle: ${od.purpose}` : `Settle: ${od.purpose}`,
         category: 'Misc',
-        amount: od.amount,
+        amount: paymentAmount,
         seller: od.seller,
         inflowId: inflowId,
         expenseName: 'Overdraft Settle'
       });
-      await userRef.collection('overdrafts').doc(overdraftId).update({ isSettled: true, settledWithInflowId: inflowId });
+
+      // 3. Update Overdraft
+      const remainingDebt = od.amount - paymentAmount;
+
+      if (remainingDebt <= 0) {
+        // Fully Settled
+        await companyRef.collection('overdrafts').doc(overdraftId).update({
+          amount: 0, // Visual clearance
+          isSettled: true,
+          settledWithInflowId: inflowId
+        });
+      } else {
+        // Partially Settled - update amount to reflect remaining debt
+        await companyRef.collection('overdrafts').doc(overdraftId).update({
+          amount: remainingDebt
+          // Keep isSettled false
+        });
+      }
     }
   };
 
   const deleteInflow = async (id: string) => {
     if (!isAdmin || !user) return;
-    await db.collection('users').doc(user.uid).collection('inflows').doc(id).delete();
+    await db.collection('companies').doc('byose_tech_main').collection('inflows').doc(id).delete();
   };
 
   const deleteOutflow = async (id: string) => {
     if (!isAdmin || !user) return;
     const out = outflows.find(o => o.id === id);
     if (!out) return;
-    const userRef = db.collection('users').doc(user.uid);
-    const infRef = userRef.collection('inflows').doc(out.inflowId);
+    const companyRef = db.collection('companies').doc('byose_tech_main');
+    const infRef = companyRef.collection('inflows').doc(out.inflowId);
     const infDoc = await infRef.get();
     if (infDoc.exists) {
       const infData = infDoc.data() as Inflow;
       await infRef.update({ remainingBalance: infData.remainingBalance + out.amount });
     }
-    await userRef.collection('outflows').doc(id).delete();
+    await companyRef.collection('outflows').doc(id).delete();
   };
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-[#165b4c] border-t-transparent rounded-full animate-spin"></div></div>;
-  if (!user) return <Auth />;
 
   return (
     <Router>
       <div className="flex min-h-screen bg-slate-50 text-slate-900">
-        <Sidebar
-          userEmail={user.email} inflows={inflows} overdrafts={overdrafts} isAdmin={isAdmin} profile={profile}
-          isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
-        />
-        <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-24 lg:pt-8">
-          <div className="lg:hidden fixed top-0 left-0 right-0 h-20 bg-white border-b z-50 flex items-center justify-between px-6">
-            <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600"><Menu size={28} /></button>
-            <div className="flex flex-col items-center"><span className="text-xs font-black tracking-widest text-[#165b4c]">BYOSE</span></div>
-            <button onClick={handleLogout} className="p-2 text-rose-500"><LogOut size={24} /></button>
-          </div>
+        <Routes>
+          <Route path="/login" element={!user ? <Auth /> : <Navigate to="/" />} />
+          <Route path="/signup" element={!user ? <AnimatedSignUp /> : <Navigate to="/" />} />
 
-          <Routes>
-            <Route path="/" element={<Dashboard inflows={inflows} outflows={outflows} />} />
-            <Route path="/ledger" element={<UnifiedLedger inflows={inflows} outflows={outflows} overdrafts={overdrafts} />} />
-            <Route path="/calendar" element={<CalendarView inflows={inflows} outflows={outflows} />} />
-            <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} />} />
-            <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
-            <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onSettle={settleOverdraft} onDelete={() => { }} isAdmin={isAdmin} />} />
-            <Route path="/tracker" element={<FlowTracker inflows={inflows} outflows={outflows} />} />
+          <Route path="/*" element={
+            user ? (
+              <>
+                <Sidebar
+                  userEmail={user.email} inflows={inflows} overdrafts={overdrafts} isAdmin={isAdmin} profile={profile}
+                  isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
+                />
+                <main className="flex-1 lg:ml-64 p-4 md:p-8 pt-24 lg:pt-8">
+                  <div className="lg:hidden fixed top-0 left-0 right-0 h-20 bg-white border-b z-50 flex items-center justify-between px-6">
+                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600"><Menu size={28} /></button>
+                    <div className="flex flex-col items-center"><span className="text-xs font-black tracking-widest text-[#165b4c]">BYOSE</span></div>
+                    <button onClick={handleLogout} className="p-2 text-rose-500"><LogOut size={24} /></button>
+                  </div>
 
-            <Route path="/profile" element={<Profile user={user} profile={profile} onUpdate={setProfile} />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
+                  <Routes>
+                    <Route path="/" element={<Dashboard inflows={inflows} outflows={outflows} />} />
+                    <Route path="/ledger" element={<UnifiedLedger inflows={inflows} outflows={outflows} overdrafts={overdrafts} />} />
+                    <Route path="/calendar" element={<CalendarView inflows={inflows} outflows={outflows} />} />
+                    <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} />} />
+                    <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
+                    <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onSettle={settleOverdraft} onDelete={() => { }} isAdmin={isAdmin} />} />
+                    <Route path="/tracker" element={<FlowTracker inflows={inflows} outflows={outflows} />} />
+
+                    <Route path="/profile" element={<Profile user={user} profile={profile} onUpdate={setProfile} />} />
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </main>
+              </>
+            ) : <Navigate to="/login" />
+          } />
+        </Routes>
       </div>
     </Router>
   );

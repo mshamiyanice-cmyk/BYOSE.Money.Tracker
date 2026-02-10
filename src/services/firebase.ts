@@ -20,4 +20,7 @@ const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : fir
 export const auth = app.auth();
 export const db = app.firestore();
 
+// Shared Company ID for the single-tenant ledger
+export const COMPANY_ID = 'byose_tech_main';
+
 export default firebase;

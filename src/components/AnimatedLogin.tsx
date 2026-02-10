@@ -7,172 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import { auth } from "../services/firebase";
+import logo from '../../asset/logo.jpg';
+import { Link } from 'react-router-dom';
 
 
-interface PupilProps {
-    size?: number;
-    maxDistance?: number;
-    pupilColor?: string;
-    forceLookX?: number;
-    forceLookY?: number;
-}
-
-const Pupil = ({
-    size = 12,
-    maxDistance = 5,
-    pupilColor = "black",
-    forceLookX,
-    forceLookY
-}: PupilProps) => {
-    const [mouseX, setMouseX] = useState<number>(0);
-    const [mouseY, setMouseY] = useState<number>(0);
-    const pupilRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMouseX(e.clientX);
-            setMouseY(e.clientY);
-        };
-
-        window.addEventListener("mousemove", handleMouseMove);
-
-        return () => {
-            window.removeEventListener("mousemove", handleMouseMove);
-        };
-    }, []);
-
-    const calculatePupilPosition = () => {
-        if (!pupilRef.current) return { x: 0, y: 0 };
-
-        // If forced look direction is provided, use that instead of mouse tracking
-        if (forceLookX !== undefined && forceLookY !== undefined) {
-            return { x: forceLookX, y: forceLookY };
-        }
-
-        const pupil = pupilRef.current.getBoundingClientRect();
-        const pupilCenterX = pupil.left + pupil.width / 2;
-        const pupilCenterY = pupil.top + pupil.height / 2;
-
-        const deltaX = mouseX - pupilCenterX;
-        const deltaY = mouseY - pupilCenterY;
-        const distance = Math.min(Math.sqrt(deltaX ** 2 + deltaY ** 2), maxDistance);
-
-        const angle = Math.atan2(deltaY, deltaX);
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance;
-
-        return { x, y };
-    };
-
-    const pupilPosition = calculatePupilPosition();
-
-    return (
-        <div
-            ref={pupilRef}
-            className="rounded-full"
-            style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                backgroundColor: pupilColor,
-                transform: `translate(${pupilPosition.x}px, ${pupilPosition.y}px)`,
-                transition: 'transform 0.1s ease-out',
-            }}
-        />
-    );
-};
-
-
-
-
-interface EyeBallProps {
-    size?: number;
-    pupilSize?: number;
-    maxDistance?: number;
-    eyeColor?: string;
-    pupilColor?: string;
-    isBlinking?: boolean;
-    forceLookX?: number;
-    forceLookY?: number;
-}
-
-const EyeBall = ({
-    size = 48,
-    pupilSize = 16,
-    maxDistance = 10,
-    eyeColor = "white",
-    pupilColor = "black",
-    isBlinking = false,
-    forceLookX,
-    forceLookY
-}: EyeBallProps) => {
-    const [mouseX, setMouseX] = useState<number>(0);
-    const [mouseY, setMouseY] = useState<number>(0);
-    const eyeRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMouseX(e.clientX);
-            setMouseY(e.clientY);
-        };
-
-        window.addEventListener("mousemove", handleMouseMove);
-
-        return () => {
-            window.removeEventListener("mousemove", handleMouseMove);
-        };
-    }, []);
-
-    const calculatePupilPosition = () => {
-        if (!eyeRef.current) return { x: 0, y: 0 };
-
-        // If forced look direction is provided, use that instead of mouse tracking
-        if (forceLookX !== undefined && forceLookY !== undefined) {
-            return { x: forceLookX, y: forceLookY };
-        }
-
-        const eye = eyeRef.current.getBoundingClientRect();
-        const eyeCenterX = eye.left + eye.width / 2;
-        const eyeCenterY = eye.top + eye.height / 2;
-
-        const deltaX = mouseX - eyeCenterX;
-        const deltaY = mouseY - eyeCenterY;
-        const distance = Math.min(Math.sqrt(deltaX ** 2 + deltaY ** 2), maxDistance);
-
-        const angle = Math.atan2(deltaY, deltaX);
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance;
-
-        return { x, y };
-    };
-
-    const pupilPosition = calculatePupilPosition();
-
-    return (
-        <div
-            ref={eyeRef}
-            className="rounded-full flex items-center justify-center transition-all duration-150"
-            style={{
-                width: `${size}px`,
-                height: isBlinking ? '2px' : `${size}px`,
-                backgroundColor: eyeColor,
-                overflow: 'hidden',
-            }}
-        >
-            {!isBlinking && (
-                <div
-                    className="rounded-full"
-                    style={{
-                        width: `${pupilSize}px`,
-                        height: `${pupilSize}px`,
-                        backgroundColor: pupilColor,
-                        transform: `translate(${pupilPosition.x}px, ${pupilPosition.y}px)`,
-                        transition: 'transform 0.1s ease-out',
-                    }}
-                />
-            )}
-        </div>
-    );
-};
+import { Pupil, EyeBall } from "./ui/AuthEyes";
 
 
 const AnimatedLogin: React.FC = () => {
@@ -192,6 +31,9 @@ const AnimatedLogin: React.FC = () => {
     const blackRef = useRef<HTMLDivElement>(null);
     const yellowRef = useRef<HTMLDivElement>(null);
     const orangeRef = useRef<HTMLDivElement>(null);
+
+    const [isResettingPassword, setIsResettingPassword] = useState(false);
+    const [resetEmailSent, setResetEmailSent] = useState(false);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -277,7 +119,7 @@ const AnimatedLogin: React.FC = () => {
     }, [password, showPassword, isPurplePeeking]);
 
     const calculatePosition = (ref: React.RefObject<HTMLDivElement | null>) => {
-        if (!ref.current) return { faceX: 0, faceY: 0, bodyRotation: 0 };
+        if (!ref.current) return { faceX: 0, faceY: 0, bodySkew: 0 };
 
         const rect = ref.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
@@ -323,6 +165,22 @@ const AnimatedLogin: React.FC = () => {
             setError(errorMessage);
         }
 
+        setIsLoading(false);
+    };
+
+    const handlePasswordReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setIsLoading(true);
+        try {
+            await auth.sendPasswordResetEmail(email);
+            setResetEmailSent(true);
+        } catch (err: any) {
+            console.error("Main Error", err);
+            let msg = "Failed to send reset email.";
+            if (err.code === 'auth/user-not-found') msg = "No account found with this email.";
+            setError(msg);
+        }
         setIsLoading(false);
     };
 
@@ -529,7 +387,12 @@ const AnimatedLogin: React.FC = () => {
             </div>
 
             {/* Right Login Section */}
-            <div className="flex items-center justify-center p-8 bg-background">
+            <div className="flex items-center justify-center p-8 bg-background relative">
+                {/* Fixed Logo in Top-Right Corner */}
+                <div className="absolute top-6 right-6 flex flex-col items-center">
+                    <img src={logo} alt="Company Logo" className="w-16 h-16 rounded-full border-2 border-slate-100 shadow-sm" />
+                </div>
+
                 <div className="w-full max-w-[420px]">
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12">
@@ -539,113 +402,177 @@ const AnimatedLogin: React.FC = () => {
                         <span>YourBrand</span>
                     </div>
 
-                    {/* Header */}
-                    <div className="text-center mb-10">
-                        <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome back!</h1>
-                        <p className="text-muted-foreground text-sm">Please enter your details</p>
-                    </div>
+                    {isResettingPassword ? (
+                        <>
+                            {resetEmailSent ? (
+                                <div className="text-center animate-in fade-in duration-500">
+                                    <h2 className="text-2xl font-bold tracking-tight mb-4">Check Your Email</h2>
+                                    <p className="text-muted-foreground mb-8">
+                                        We sent a password reset link to <span className="font-semibold">{email}</span>.
+                                    </p>
+                                    <Button onClick={() => { setIsResettingPassword(false); setResetEmailSent(false); }} className="w-full h-12">
+                                        Back to Login
+                                    </Button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="text-center mb-10">
+                                        <h1 className="text-3xl font-bold tracking-tight mb-2">Reset Password</h1>
+                                        <p className="text-muted-foreground text-sm">Enter your email to receive a reset link</p>
+                                    </div>
 
-                    {/* Login Form */}
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="anna@gmail.com"
-                                value={email}
-                                autoComplete="off"
-                                onChange={(e) => setEmail(e.target.value)}
-                                onFocus={() => setIsTyping(true)}
-                                onBlur={() => setIsTyping(false)}
-                                required
-                                className="h-12 bg-background border-border/60 focus:border-primary"
-                            />
-                        </div>
+                                    <form onSubmit={handlePasswordReset} className="space-y-5">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="reset-email" className="text-sm font-medium">Email</Label>
+                                            <Input
+                                                id="reset-email"
+                                                type="email"
+                                                placeholder="anna@gmail.com"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                                className="h-12 bg-background border-border/60 focus:border-primary"
+                                            />
+                                        </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    className="h-12 pr-10 bg-background border-border/60 focus:border-primary"
-                                />
-                                <button
+                                        {error && (
+                                            <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg">
+                                                {error}
+                                            </div>
+                                        )}
+
+                                        <Button
+                                            type="submit"
+                                            className="w-full h-12 text-base font-medium"
+                                            size="lg"
+                                            disabled={isLoading}
+                                        >
+                                            {isLoading ? "Sending..." : "Send Reset Link"}
+                                        </Button>
+
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => setIsResettingPassword(false)}
+                                            className="w-full"
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </form>
+                                </>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            {/* Header */}
+                            <div className="text-center mb-10">
+                                <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome back!</h1>
+                                <p className="text-muted-foreground text-sm">Please enter your details</p>
+                            </div>
+
+                            {/* Login Form */}
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                <div className="space-y-2">
+                                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="anna@gmail.com"
+                                        value={email}
+                                        autoComplete="off"
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        onFocus={() => setIsTyping(true)}
+                                        onBlur={() => setIsTyping(false)}
+                                        required
+                                        className="h-12 bg-background border-border/60 focus:border-primary"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                            className="h-12 pr-10 bg-background border-border/60 focus:border-primary"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="size-5" />
+                                            ) : (
+                                                <Eye className="size-5" />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox id="remember" />
+                                        <Label
+                                            htmlFor="remember"
+                                            className="text-sm font-normal cursor-pointer"
+                                        >
+                                            Remember for 30 days
+                                        </Label>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsResettingPassword(true)}
+                                        className="text-sm text-primary hover:underline font-medium"
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </div>
+
+                                {error && (
+                                    <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <Button
+                                    type="submit"
+                                    className="w-full h-12 text-base font-medium"
+                                    size="lg"
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? "Signing in..." : "Log in"}
+                                </Button>
+                            </form>
+
+                            {/* Social Login */}
+                            <div className="mt-6">
+                                <Button
+                                    variant="outline"
+                                    className="w-full h-12 bg-background border-border/60 hover:bg-accent"
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    {showPassword ? (
-                                        <EyeOff className="size-5" />
-                                    ) : (
-                                        <Eye className="size-5" />
-                                    )}
-                                </button>
+                                    <Mail className="mr-2 size-5" />
+                                    Log in with Google
+                                </Button>
                             </div>
-                        </div>
 
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="remember" />
-                                <Label
-                                    htmlFor="remember"
-                                    className="text-sm font-normal cursor-pointer"
-                                >
-                                    Remember for 30 days
-                                </Label>
+                            {/* Sign Up Link */}
+                            <div className="text-center text-sm text-muted-foreground mt-8">
+                                Don't have an account?{" "}
+                                <Link to="/signup" className="text-foreground font-medium hover:underline">
+                                    Sign Up
+                                </Link>
                             </div>
-                            <a
-                                href="#"
-                                className="text-sm text-primary hover:underline font-medium"
-                            >
-                                Forgot password?
-                            </a>
-                        </div>
-
-                        {error && (
-                            <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg">
-                                {error}
-                            </div>
-                        )}
-
-                        <Button
-                            type="submit"
-                            className="w-full h-12 text-base font-medium"
-                            size="lg"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? "Signing in..." : "Log in"}
-                        </Button>
-                    </form>
-
-                    {/* Social Login */}
-                    <div className="mt-6">
-                        <Button
-                            variant="outline"
-                            className="w-full h-12 bg-background border-border/60 hover:bg-accent"
-                            type="button"
-                        >
-                            <Mail className="mr-2 size-5" />
-                            Log in with Google
-                        </Button>
-                    </div>
-
-                    {/* Sign Up Link */}
-                    <div className="text-center text-sm text-muted-foreground mt-8">
-                        Don't have an account?{" "}
-                        <a href="#" className="text-foreground font-medium hover:underline">
-                            Sign Up
-                        </a>
-                    </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
     );
-}
-
+};
 export default AnimatedLogin;

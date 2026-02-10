@@ -5,6 +5,7 @@ import { auth } from '../services/firebase';
 import { Inflow, Overdraft, UserProfile } from '../types';
 import { X, LogOut, UserCircle, LayoutDashboard, ListTodo, Calendar, TrendingUp, TrendingDown, Receipt, Route } from 'lucide-react';
 import './responsive.css';
+import logo from '../../asset/logo.jpg';
 
 interface SidebarProps {
   userEmail: string | null;
@@ -39,13 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userEmail, inflows, overdrafts, isAdm
       <aside className={`fixed inset-y-0 left-0 w-64 bg-slate-950 text-white p-6 z-[70] shadow-2xl transition-transform duration-300 transform-gpu lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <button onClick={onClose} className="lg:hidden absolute top-6 right-6 text-slate-400 p-2 rounded-full"><X size={24} /></button>
         <div className="flex flex-col items-start mb-10 pl-2">
-          <div className="flex flex-col items-start -space-y-1">
-            <div className="w-[44px] h-[14px] bg-[#165b4c] rounded-tr-[7px] rounded-br-[2px] mb-[2px]"></div>
-            <div className="w-[74px] h-[34px] bg-[#165b4c] rounded-tr-[17px] rounded-br-[17px] flex items-center justify-center">
-              <span className="text-white font-black text-[12px] tracking-tighter">BYOSE</span>
-            </div>
-          </div>
-          <span className="text-[#165b4c] font-black text-[26px] tracking-tighter uppercase mt-1">Tech</span>
+          <img src={logo} alt="" className="w-24 h-24 rounded-full border-2 border-white/10" />
         </div>
 
         <nav className="space-y-1 mb-10 overflow-y-auto max-h-[60vh] custom-scrollbar">
