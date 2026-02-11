@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import { auth } from "../services/firebase";
-import logo from '../../asset/logo.jpg';
+
 import { Link } from 'react-router-dom';
 
 
@@ -390,7 +390,7 @@ const AnimatedLogin: React.FC = () => {
             <div className="flex items-center justify-center p-8 bg-background relative">
                 {/* Fixed Logo in Top-Right Corner */}
                 <div className="absolute top-6 right-6 flex flex-col items-center">
-                    <img src="/logo.jpg" alt="Logo" className="w-20 h-20 rounded-full object-cover shadow-2xl border-4 border-white/20" />
+                    <img src="/logo.png" alt="Logo" className="w-16 h-16 rounded-full object-cover border-2 border-white/20 shadow-lg mb-4" />
                 </div>
 
                 <div className="w-full max-w-[420px]">

@@ -40,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userEmail, inflows, overdrafts, isAdm
       <aside className={`fixed inset-y-0 left-0 w-64 bg-slate-950 text-white p-6 z-[70] shadow-2xl transition-transform duration-300 transform-gpu lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <button onClick={onClose} className="lg:hidden absolute top-6 right-6 text-slate-400 p-2 rounded-full"><X size={24} /></button>
         <div className="flex flex-col items-start mb-10 pl-2">
-          <img src="/logo.jpg" alt="Company Logo" className="w-24 h-24 rounded-full border-2 border-white/10" />
+          <img src="/logo.png" alt="Company Logo" className="w-24 h-24 rounded-full border-2 border-white/10" />
         </div>
 
         <nav className="space-y-1 mb-10 overflow-y-auto max-h-[60vh] custom-scrollbar">

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Mail, Sparkles, User, CheckCircle } from "lucide-react";
 import { auth, db } from "../services/firebase"; // Assuming db is exported from firebase service for user document creation
-import logo from '../../asset/logo.jpg';
+
 import { Link, useNavigate } from 'react-router-dom';
 
 import { Pupil, EyeBall } from "./ui/AuthEyes";
@@ -424,7 +424,7 @@ const AnimatedSignUp: React.FC = () => {
             <div className="flex items-center justify-center p-8 bg-background relative">
                 {/* Fixed Logo in Top-Right Corner */}
                 <div className="absolute top-6 right-6 flex flex-col items-center">
-                    <img src="/logo.jpg" alt="Logo" className="w-16 h-16 rounded-full object-cover border-2 border-white/20 shadow-lg mb-4" />
+                    <img src="/logo.png" alt="Logo" className="w-16 h-16 rounded-full object-cover border-2 border-white/20 shadow-lg mb-4" />
                 </div>
 
                 <div className="w-full max-w-[420px]">
