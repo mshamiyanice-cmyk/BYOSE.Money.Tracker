@@ -5,7 +5,7 @@ import { auth } from '../services/firebase';
 import { Inflow, Overdraft, UserProfile } from '../types';
 import { X, LogOut, UserCircle, LayoutDashboard, ListTodo, Calendar, TrendingUp, TrendingDown, Receipt, Route } from 'lucide-react';
 import './responsive.css';
-import logo from '../../asset/logo.jpg'; // Keep for now if needed, but we used public path below. Actually, let's remove it and use string.
+
 
 interface SidebarProps {
   userEmail: string | null;
