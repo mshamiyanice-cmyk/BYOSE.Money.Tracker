@@ -390,7 +390,7 @@ const AnimatedLogin: React.FC = () => {
             <div className="flex items-center justify-center p-8 bg-background relative">
                 {/* Fixed Logo in Top-Right Corner */}
                 <div className="absolute top-6 right-6 flex flex-col items-center">
-                    <img src={logo} alt="Company Logo" className="w-16 h-16 rounded-full border-2 border-slate-100 shadow-sm" />
+                    <img src="/logo.jpg" alt="Logo" className="w-20 h-20 rounded-full object-cover shadow-2xl border-4 border-white/20" />
                 </div>
 
                 <div className="w-full max-w-[420px]">

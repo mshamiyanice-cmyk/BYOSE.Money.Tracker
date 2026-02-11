@@ -424,7 +424,7 @@ const AnimatedSignUp: React.FC = () => {
             <div className="flex items-center justify-center p-8 bg-background relative">
                 {/* Fixed Logo in Top-Right Corner */}
                 <div className="absolute top-6 right-6 flex flex-col items-center">
-                    <img src={logo} alt="Company Logo" className="w-16 h-16 rounded-full border-2 border-slate-100 shadow-sm" />
+                    <img src="/logo.jpg" alt="Logo" className="w-16 h-16 rounded-full object-cover border-2 border-white/20 shadow-lg mb-4" />
                 </div>
 
                 <div className="w-full max-w-[420px]">
