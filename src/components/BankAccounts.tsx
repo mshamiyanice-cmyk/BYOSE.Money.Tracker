@@ -3,6 +3,8 @@ import { Inflow, Outflow } from '../types';
 import { Landmark, ArrowUpRight, ArrowDownLeft, Building2, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 
+import { BANK_ACCOUNTS } from '../constants';
+
 interface BankAccountsProps {
     inflows: Inflow[];
     outflows: Outflow[];
@@ -29,8 +31,22 @@ const BankAccounts: React.FC<BankAccountsProps> = ({ inflows, outflows }) => {
     const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
 
     // Derive accounts from data
-    const accounts: BankAccount[] = [];
     const accountMap = new Map<string, BankAccount>();
+
+    // Initialize with fixed corporate accounts
+    BANK_ACCOUNTS.forEach(acc => {
+        const key = `${acc.name}-${acc.number}-${acc.currency}`;
+        accountMap.set(key, {
+            id: key,
+            name: acc.name,
+            number: acc.number,
+            currency: acc.currency,
+            balance: 0,
+            totalIn: 0,
+            totalOut: 0,
+            transactions: []
+        });
+    });
 
     // Process Inflows (Deposits)
     inflows.forEach(inf => {
@@ -41,7 +57,14 @@ const BankAccounts: React.FC<BankAccountsProps> = ({ inflows, outflows }) => {
             const currency = inf.currency || 'RWF';
             const key = `${bankName}-${accNum}-${currency}`;
 
+            // If strict mode, we might only care about matching accounts, 
+            // but let's allow legacy ones to appear if they exist in data but not constants?
+            // Actually, user wants strict management. Let's prioritize matching.
+
             if (!accountMap.has(key)) {
+                // Optional: Uncomment to hide unknown accounts
+                // return; 
+
                 accountMap.set(key, {
                     id: key,
                     name: bankName,

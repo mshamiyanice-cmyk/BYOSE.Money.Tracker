@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { Button } from './ui/button';
 import { generateUUID } from '../lib/utils';
 import { Landmark, Smartphone, CreditCard, StickyNote, Pencil, RefreshCw, Hand } from 'lucide-react';
+import { BANK_ACCOUNTS } from '../constants';
 
 interface InflowManagerProps {
   inflows: Inflow[];
@@ -261,28 +262,35 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
             {/* Payment Method / Deposit Details Section */}
             <div className="space-y-4 md:col-span-2">
               {formData.product === 'Deposit' ? (
-                <div className="space-y-2 animate-in fade-in slide-in-from-left-4 duration-300">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Bank Account</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="relative">
-                      <Landmark className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <input
-                        type="text"
-                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none transition-all text-slate-900 font-bold"
-                        value={formData.bankAccountName || ''}
-                        onChange={e => setFormData({ ...formData, bankAccountName: e.target.value })}
-                        placeholder="Bank Name (e.g. Equity Bank)"
-                      />
-                    </div>
-                    <div className="relative">
-                      <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <input
-                        type="text"
-                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none transition-all text-slate-900 font-bold font-mono"
-                        value={formData.accountNumber}
-                        onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
-                        placeholder="Account Number"
-                      />
+                <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 animate-in slide-in-from-top-2 duration-300">
+                  <h4 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Landmark size={16} /> Target Bank Account
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Account</label>
+                      <select
+                        className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none text-slate-900 font-bold appearance-none cursor-pointer"
+                        value={formData.accountNumber || ''}
+                        onChange={(e) => {
+                          const selected = BANK_ACCOUNTS.find(acc => acc.number === e.target.value);
+                          if (selected) {
+                            setFormData({
+                              ...formData,
+                              bankAccountName: selected.name,
+                              accountNumber: selected.number,
+                              currency: selected.currency
+                            });
+                          }
+                        }}
+                      >
+                        <option value="">-- Choose Corporate Account --</option>
+                        {BANK_ACCOUNTS.map(acc => (
+                          <option key={acc.number} value={acc.number}>
+                            {acc.name} - {acc.currency} (**** {acc.number.slice(-4)})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -315,9 +323,44 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                     </div>
                   </div>
 
-                  {(formData.paymentMethod === 'Bank' || formData.paymentMethod === 'Momo') && (
+                  {(formData.paymentMethod === 'Bank') && (
+                    <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 animate-in slide-in-from-left-2 duration-300 md:col-span-2">
+                      <h4 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <Landmark size={16} /> Target Bank Account
+                      </h4>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Account</label>
+                          <select
+                            className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none text-slate-900 font-bold appearance-none cursor-pointer"
+                            value={formData.accountNumber || ''}
+                            onChange={(e) => {
+                              const selected = BANK_ACCOUNTS.find(acc => acc.number === e.target.value);
+                              if (selected) {
+                                setFormData({
+                                  ...formData,
+                                  bankAccountName: selected.name,
+                                  accountNumber: selected.number,
+                                  currency: selected.currency
+                                });
+                              }
+                            }}
+                          >
+                            <option value="">-- Choose Corporate Account --</option>
+                            {BANK_ACCOUNTS.map(acc => (
+                              <option key={acc.number} value={acc.number}>
+                                {acc.name} - {acc.currency} (**** {acc.number.slice(-4)})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {(formData.paymentMethod === 'Momo') && (
                     <div className="space-y-2 animate-in slide-in-from-left-2 duration-300">
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Momo Number</label>
                       <div className="relative">
                         <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
@@ -325,7 +368,7 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                           className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none transition-all text-slate-900 font-bold font-mono"
                           value={formData.accountNumber}
                           onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
-                          placeholder="XXXX-XXXX-XXXX"
+                          placeholder="07..."
                         />
                       </div>
                     </div>
