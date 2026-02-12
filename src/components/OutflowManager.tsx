@@ -319,6 +319,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
             <tr>
               <th className="px-6 py-4">Date</th>
               <th className="px-6 py-4">Vendor</th>
+              <th className="px-6 py-4">Fund Source</th>
               <th className="px-6 py-4">Use / Purpose</th>
               <th className="px-6 py-4">Amount</th>
               {isAdmin && <th className="px-6 py-4 text-right">Actions</th>}
@@ -341,6 +342,14 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                       <span>{out.paymentMethod} {out.accountNumber ? `• ${out.accountNumber}` : ''}</span>
                     </div>
                   )}
+                </td>
+                <td className="px-6 py-4">
+                  <p className="text-sm font-bold text-slate-700">
+                    {inflows.find(i => i.id === out.inflowId)?.source || <span className="text-red-500 italic">Unknown Source</span>}
+                  </p>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">
+                    {inflows.find(i => i.id === out.inflowId)?.product}
+                  </p>
                 </td>
                 <td className="px-6 py-4">
                   <p className="text-sm text-slate-700 font-medium">
