@@ -59,7 +59,8 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
     if (isDetailRequired && !formData.expenseName) return;
 
     if (selectedInflow && amountNum > selectedInflow.remainingBalance) {
-      if (!confirm(`Insufficient funds in ${selectedInflow.source}. Log as debt?`)) return;
+      const overdraftAmount = amountNum - selectedInflow.remainingBalance;
+      if (!confirm(`Insufficient funds in ${selectedInflow.source}.\n\nThis will empty the pot and create an Overdraft of ${overdraftAmount.toLocaleString()} RWF.\n\nProceed?`)) return;
     }
 
     setIsSubmitting(true);

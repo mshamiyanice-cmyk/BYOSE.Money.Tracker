@@ -192,17 +192,40 @@ const App: React.FC = () => {
         }
 
         const inflowData = inflowDoc.data() as Inflow;
-        const newBalance = inflowData.remainingBalance - outflow.amount;
 
-        // Sanitize object: remove undefined fields which break Firestore
-        // Also explicitly remove expenseName if it is undefined/null to be safe
-        const sanitizedOutflow = JSON.parse(JSON.stringify(outflow));
-        if (sanitizedOutflow.expenseName === undefined || sanitizedOutflow.expenseName === null) {
-          delete sanitizedOutflow.expenseName;
+        let newBalance = inflowData.remainingBalance - outflow.amount;
+
+        // SMART OVERDRAFT LOGIC
+        if (newBalance < 0) {
+          const overdraftAmount = Math.abs(newBalance);
+          newBalance = 0; // Floor at 0
+
+          // Auto-create Overdraft Record
+          const overdraftRef = companyRef.collection('overdrafts').doc(); // Auto-ID or generateUUID()
+          const newOverdraft: Overdraft = {
+            id: overdraftRef.id,
+            amount: overdraftAmount,
+            date: outflow.date,
+            seller: outflow.seller,
+            purpose: `Overdraft: ${outflow.purpose}`, // Required field
+            notes: `Auto-Overdraft from: ${outflow.purpose} (${outflow.category})`,
+            isSettled: false,
+            createdAt: new Date().toISOString()
+          };
+
+          transaction.set(overdraftRef, newOverdraft);
         }
 
         transaction.update(inflowRef, { remainingBalance: newBalance });
-        transaction.set(companyRef.collection('outflows').doc(outflow.id), sanitizedOutflow);
+
+        // Use sanitizeOutflow helper to remove undefined fields
+        const sanitizeOutflow = (data: Outflow) => {
+          const clean = { ...data };
+          Object.keys(clean).forEach(key => clean[key as keyof Outflow] === undefined && delete clean[key as keyof Outflow]);
+          return clean;
+        };
+
+        transaction.set(companyRef.collection('outflows').doc(outflow.id), sanitizeOutflow(outflow));
       });
     } catch (error) {
       console.error("Transaction failed: ", error);

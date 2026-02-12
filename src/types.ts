@@ -36,6 +36,7 @@ export interface Overdraft {
   isSettled: boolean;
   settledWithInflowId?: string;
   notes?: string;
+  createdAt?: string; // ISO String for sorting
 }
 
 export interface UserProfile {
