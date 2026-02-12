@@ -106,7 +106,19 @@ const App: React.FC = () => {
   const updateOutflow = async (updatedOutflow: Outflow) => {
     if (!isAdmin || !user) return;
     const companyRef = db.collection('companies').doc('byose_tech_main');
-    const outflowRef = companyRef.collection('outflows').doc(updatedOutflow.id);
+
+    // Resolve ID: Handle legacy data where doc.id !== data.id (due to .add() usage)
+    let targetDocId = updatedOutflow.id;
+    const directDoc = await companyRef.collection('outflows').doc(targetDocId).get();
+
+    if (!directDoc.exists) {
+      const querySnap = await companyRef.collection('outflows').where('id', '==', targetDocId).limit(1).get();
+      if (!querySnap.empty) {
+        targetDocId = querySnap.docs[0].id;
+      }
+    }
+
+    const outflowRef = companyRef.collection('outflows').doc(targetDocId);
 
     try {
       await db.runTransaction(async (transaction) => {
@@ -282,8 +294,9 @@ const App: React.FC = () => {
       await inflowRef.update({ remainingBalance: infData.remainingBalance - paymentAmount });
 
       // 2. Log Outflow for this payment
-      await companyRef.collection('outflows').add({
-        id: generateUUID(),
+      const paymentOutflowId = generateUUID();
+      await companyRef.collection('outflows').doc(paymentOutflowId).set({
+        id: paymentOutflowId,
         date: new Date().toISOString().split('T')[0],
         purpose: paymentAmount < od.amount ? `Partial Settle: ${od.purpose}` : `Settle: ${od.purpose}`,
         category: 'Misc',
@@ -324,7 +337,19 @@ const App: React.FC = () => {
     // Optimistic UI update could go here, but for now we rely on Snapshot
 
     const companyRef = db.collection('companies').doc('byose_tech_main');
-    const outflowRef = companyRef.collection('outflows').doc(id);
+
+    // Resolve ID: Handle legacy data
+    let targetDocId = id;
+    const directDoc = await companyRef.collection('outflows').doc(targetDocId).get();
+
+    if (!directDoc.exists) {
+      const querySnap = await companyRef.collection('outflows').where('id', '==', targetDocId).limit(1).get();
+      if (!querySnap.empty) {
+        targetDocId = querySnap.docs[0].id;
+      }
+    }
+
+    const outflowRef = companyRef.collection('outflows').doc(targetDocId);
 
     try {
       await db.runTransaction(async (transaction) => {
