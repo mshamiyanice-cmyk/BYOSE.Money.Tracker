@@ -148,11 +148,9 @@ const App: React.FC = () => {
         }
 
         // Finally update the outflow itself
-        // Ensure no undefined fields are passed
+        // Ensure no undefined fields are passed using JSON stringify/parse which strips undefineds
         const sanitizeOutflow = (data: Outflow) => {
-          const clean = { ...data };
-          Object.keys(clean).forEach(key => clean[key as keyof Outflow] === undefined && delete clean[key as keyof Outflow]);
-          return clean;
+          return JSON.parse(JSON.stringify(data));
         };
 
         transaction.update(outflowRef, sanitizeOutflow(updatedOutflow));
