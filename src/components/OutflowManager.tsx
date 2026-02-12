@@ -25,6 +25,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
   const [editingId, setEditingId] = useState<string | null>(null);
   const [fundSourceSearch, setFundSourceSearch] = useState('');
   const [noteModal, setNoteModal] = useState<{ id: string, text: string } | null>(null);
+  const [viewOutflow, setViewOutflow] = useState<Outflow | null>(null);
   const [formData, setFormData] = useState({
     purpose: '',
     category: 'Cost of Goods',
@@ -446,7 +447,11 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
               const sourceName = inflows.find(i => i.id === out.inflowId)?.source || '';
               return sourceName.toLowerCase().includes(fundSourceSearch.toLowerCase());
             }).map(out => (
-              <tr key={out.id} className="hover:bg-slate-50 group">
+              <tr
+                key={out.id}
+                onClick={() => setViewOutflow(out)}
+                className="hover:bg-slate-50 group cursor-pointer transition-colors"
+              >
                 <td className="px-6 py-4 text-sm text-slate-500">{out.date}</td>
                 <td className="px-6 py-4">
                   <p className="font-bold text-slate-800">{out.seller}</p>
@@ -562,6 +567,114 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
               >
                 Save Note
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {viewOutflow && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setViewOutflow(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-start">
+              <div>
+                <h3 className="text-xl font-black text-slate-800">Expense Details</h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">{viewOutflow.id}</p>
+              </div>
+              <button onClick={() => setViewOutflow(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Header Amount */}
+              <div className="bg-slate-900 p-6 rounded-2xl text-center">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Total Amount</p>
+                <p className="text-3xl font-black text-white font-mono">
+                  {viewOutflow.amount.toLocaleString()} <span className="text-sm text-slate-500">RWF</span>
+                </p>
+                {viewOutflow.currency === 'USD' && viewOutflow.exchangeRate && (
+                  <p className="text-xs text-slate-500 mt-2 font-mono">
+                    (Paid as: {(viewOutflow.amount / viewOutflow.exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD @ {viewOutflow.exchangeRate})
+                  </p>
+                )}
+              </div>
+
+              {/* Main Info Grid */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Date</label>
+                  <p className="font-bold text-slate-800">{format(new Date(viewOutflow.date), 'PPP')}</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Vendor / Seller</label>
+                  <p className="font-bold text-slate-800">{viewOutflow.seller}</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Fund Source</label>
+                  <p className="font-bold text-slate-800 text-sm">
+                    {inflows.find(i => i.id === viewOutflow.inflowId)?.source || 'Unknown Source'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Category</label>
+                  <span className="inline-block px-2 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-slate-100 text-slate-600">
+                    {viewOutflow.category}
+                  </span>
+                </div>
+              </div>
+
+              {/* Purpose / Item */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Configuration</label>
+                <div className="font-medium text-slate-700">
+                  {viewOutflow.expenseName ? (
+                    <>
+                      <span className="font-bold text-slate-900 block">{viewOutflow.expenseName}</span>
+                      <span className="text-sm text-slate-500 block mt-1">{viewOutflow.purpose}</span>
+                    </>
+                  ) : (
+                    <span className="font-bold text-slate-900">{viewOutflow.purpose}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Payment Details */}
+              <div className="border-t border-slate-100 pt-6">
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4">Payment Method Details</h4>
+                <div className="bg-slate-50 p-4 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500">Method</span>
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                      {viewOutflow.paymentMethod === 'Bank' && <Landmark size={14} className="text-[#165b4c]" />}
+                      {viewOutflow.paymentMethod === 'Momo' && <Smartphone size={14} className="text-amber-500" />}
+                      {viewOutflow.paymentMethod === 'Hand in Hand' && <Hand size={14} className="text-slate-500" />}
+                      {viewOutflow.paymentMethod || 'N/A'}
+                    </div>
+                  </div>
+                  {(viewOutflow.accountNumber) && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-500">Account / Number</span>
+                      <span className="text-sm font-mono font-bold text-slate-700">
+                        {viewOutflow.paymentMethod === 'Bank' ?
+                          (BANK_ACCOUNTS.find(acc => acc.number === viewOutflow.accountNumber)?.name + ' ')
+                          : ''}
+                        {viewOutflow.accountNumber ? `• ${viewOutflow.accountNumber}` : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Notes */}
+              {viewOutflow.notes && (
+                <div className="border-t border-slate-100 pt-6">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-2">Notes</label>
+                  <div className="bg-amber-50 p-4 rounded-xl text-amber-900 text-sm font-medium italic border border-amber-100">
+                    "{viewOutflow.notes}"
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

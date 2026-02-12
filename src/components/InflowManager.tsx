@@ -61,6 +61,7 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
 
   const [noteModal, setNoteModal] = useState<{ id: string, text: string } | null>(null);
   const [balanceEditModal, setBalanceEditModal] = useState<{ id: string, currentBalance: number } | null>(null);
+  const [viewInflow, setViewInflow] = useState<Inflow | null>(null);
 
   const formatNumberWithCommas = (val: string) => {
     // Remove everything that is not a digit or a dot
@@ -464,7 +465,11 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
             </thead>
             <tbody className="divide-y divide-slate-100">
               {inflows.map(inf => (
-                <tr key={inf.id} className="hover:bg-slate-50 group transition-colors">
+                <tr
+                  key={inf.id}
+                  onClick={() => setViewInflow(inf)}
+                  className="hover:bg-slate-50 group transition-colors cursor-pointer"
+                >
                   <td className="px-8 py-5 text-xs font-bold text-slate-500 whitespace-nowrap">{inf.date}</td>
                   <td className="px-8 py-5 min-w-[200px]">
                     <p className="font-black text-slate-900 text-sm leading-tight">{inf.source}</p>
@@ -630,6 +635,97 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
               >
                 Update Balance
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {viewInflow && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setViewInflow(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-start">
+              <div>
+                <h3 className="text-xl font-black text-slate-800">Inflow Details</h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">{viewInflow.id}</p>
+              </div>
+              <button onClick={() => setViewInflow(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Status Banner */}
+              <div className={`p-4 rounded-2xl flex items-center justify-between ${viewInflow.remainingBalance < 0 ? 'bg-rose-50 border border-rose-100' : 'bg-emerald-50 border border-emerald-100'}`}>
+                <div>
+                  <p className={`text-[10px] uppercase font-black tracking-widest ${viewInflow.remainingBalance < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>Current Status</p>
+                  <p className={`text-xl font-black ${viewInflow.remainingBalance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {viewInflow.remainingBalance < 0 ? 'Overdraft / Debt' : 'Active Funds'}
+                  </p>
+                </div>
+                <div className={`text-2xl font-black font-mono ${viewInflow.remainingBalance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {viewInflow.remainingBalance.toLocaleString()} <span className="text-sm text-slate-400">{viewInflow.currency || 'RWF'}</span>
+                </div>
+              </div>
+
+              {/* Main Info Grid */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Source</label>
+                  <p className="font-bold text-slate-800 text-lg">{viewInflow.source}</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Date Logged</label>
+                  <p className="font-bold text-slate-800">{format(new Date(viewInflow.date), 'PPP')}</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Classification</label>
+                  <span className={`inline-block px-2 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${getCategoryBadgeClass(viewInflow.product)}`}>
+                    {viewInflow.product}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Original Amount</label>
+                  <p className="font-bold text-slate-800 font-mono">
+                    {viewInflow.amount.toLocaleString()} {viewInflow.currency || 'RWF'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Payment Details */}
+              <div className="border-t border-slate-100 pt-6">
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4">Payment Method Details</h4>
+                <div className="bg-slate-50 p-4 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500">Method</span>
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                      {viewInflow.paymentMethod === 'Bank' && <Landmark size={14} className="text-[#165b4c]" />}
+                      {viewInflow.paymentMethod === 'Momo' && <Smartphone size={14} className="text-amber-500" />}
+                      {viewInflow.paymentMethod === 'Hand in Hand' && <Hand size={14} className="text-slate-500" />}
+                      {viewInflow.paymentMethod || 'N/A'}
+                    </div>
+                  </div>
+                  {(viewInflow.accountNumber || viewInflow.bankAccountName) && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-500">Account / Number</span>
+                      <span className="text-sm font-mono font-bold text-slate-700">
+                        {viewInflow.bankAccountName ? `${viewInflow.bankAccountName} ` : ''}
+                        {viewInflow.accountNumber ? `• ${viewInflow.accountNumber}` : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Description / Notes */}
+              {viewInflow.description && (
+                <div className="border-t border-slate-100 pt-6">
+                  <label className="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-2">Description / Notes</label>
+                  <div className="bg-amber-50 p-4 rounded-xl text-amber-900 text-sm font-medium italic border border-amber-100">
+                    "{viewInflow.description}"
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
