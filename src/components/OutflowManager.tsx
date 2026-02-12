@@ -79,8 +79,8 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
             onClick={() => setShowForm(!showForm)}
             disabled={availableInflows.length === 0}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${availableInflows.length === 0
-                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                : 'bg-rose-600 text-white shadow-lg'
+              ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              : 'bg-rose-600 text-white shadow-lg'
               }`}
           >
             <i className={`fas ${showForm ? 'fa-times' : 'fa-plus'}`}></i>
@@ -164,6 +164,18 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-900 outline-none"
                 value={formData.amount}
                 onChange={handleAmountChange}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Date</label>
+              <input
+                type="date"
+                required
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-900 outline-none"
+                value={formData.date}
+                max={new Date().toISOString().split('T')[0]} // Prevent future dates if desired, optional
+                onChange={e => setFormData({ ...formData, date: e.target.value })}
               />
             </div>
           </div>
