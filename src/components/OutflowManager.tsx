@@ -33,7 +33,9 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
     inflowId: '',
     expenseName: '',
     paymentMethod: 'Bank' as 'Bank' | 'Momo' | 'Hand in Hand',
-    accountNumber: ''
+    accountNumber: '',
+    currency: 'RWF' as 'RWF' | 'USD',
+    exchangeRate: ''
   });
 
   const availableInflows = inflows;
@@ -88,6 +90,8 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
           expenseName: isDetailRequired ? formData.expenseName : undefined,
           paymentMethod: formData.paymentMethod,
           accountNumber: formData.accountNumber,
+          currency: formData.currency,
+          exchangeRate: formData.exchangeRate ? parseFloat(formData.exchangeRate) : undefined,
           // Preserve existing notes if not editing them here? Or keep them as is.
           notes: outflows.find(o => o.id === editingId)?.notes
         });
@@ -102,7 +106,9 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
           inflowId: formData.inflowId,
           expenseName: isDetailRequired ? formData.expenseName : undefined,
           paymentMethod: formData.paymentMethod,
-          accountNumber: formData.accountNumber
+          accountNumber: formData.accountNumber,
+          currency: formData.currency,
+          exchangeRate: formData.exchangeRate ? parseFloat(formData.exchangeRate) : undefined
         });
       }
 
@@ -115,7 +121,9 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
         inflowId: '',
         expenseName: '',
         paymentMethod: 'Bank',
-        accountNumber: ''
+        accountNumber: '',
+        currency: 'RWF',
+        exchangeRate: ''
       });
       setShowForm(false);
       setEditingId(null);
@@ -175,7 +183,9 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                   inflowId: '',
                   expenseName: '',
                   paymentMethod: 'Bank',
-                  accountNumber: ''
+                  accountNumber: '',
+                  currency: 'RWF',
+                  exchangeRate: ''
                 });
               }
             }}
@@ -290,6 +300,57 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                       placeholder="XXXX-XXXX-XXXX"
                     />
                   </div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount ({formData.currency})</label>
+                  <div className="flex gap-4">
+                    <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, currency: 'RWF' })}
+                        className={`px-4 py-3 rounded-lg text-sm font-bold transition-all ${formData.currency === 'RWF' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        RWF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, currency: 'USD' })}
+                        className={`px-4 py-3 rounded-lg text-sm font-bold transition-all ${formData.currency === 'USD' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        USD
+                      </button>
+                    </div>
+
+                    <div className="relative flex-1">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                        {formData.currency === 'RWF' ? 'RWF' : '$'}
+                      </span>
+                      <input
+                        type="text" required
+                        inputMode="decimal"
+                        className="w-full pl-14 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none text-slate-900 font-bold text-lg"
+                        value={formData.amount}
+                        onChange={handleAmountChange}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Optional Exchange Rate */}
+                  {formData.currency === 'USD' && (
+                    <div className="space-y-2 animate-in slide-in-from-top-2">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Exchange Rate (Optional)</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">1 USD = </span>
+                        <input
+                          type="number"
+                          className="w-full pl-20 pr-12 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none text-slate-900 font-bold font-mono"
+                          value={formData.exchangeRate}
+                          onChange={e => setFormData({ ...formData, exchangeRate: e.target.value })}
+                          placeholder="Current Rate"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">RWF</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -410,7 +471,9 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                           inflowId: out.inflowId,
                           expenseName: out.expenseName || '',
                           paymentMethod: out.paymentMethod || 'Bank',
-                          accountNumber: out.accountNumber || ''
+                          accountNumber: out.accountNumber || '',
+                          currency: out.currency || 'RWF',
+                          exchangeRate: out.exchangeRate ? out.exchangeRate.toString() : ''
                         });
                         setShowForm(true);
                         window.scrollTo({ top: 0, behavior: 'smooth' });

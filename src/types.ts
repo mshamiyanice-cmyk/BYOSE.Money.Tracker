@@ -26,6 +26,8 @@ export interface Outflow {
   notes?: string;
   paymentMethod?: 'Bank' | 'Momo' | 'Hand in Hand';
   accountNumber?: string;
+  currency?: 'RWF' | 'USD';
+  exchangeRate?: number;
 }
 
 export interface Overdraft {
