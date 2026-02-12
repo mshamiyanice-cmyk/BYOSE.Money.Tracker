@@ -22,6 +22,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [fundSourceSearch, setFundSourceSearch] = useState('');
   const [noteModal, setNoteModal] = useState<{ id: string, text: string } | null>(null);
   const [formData, setFormData] = useState({
     purpose: '',
@@ -129,11 +130,24 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-800">Track Spending (Outflows)</h2>
           {!isAdmin && <p className="text-xs text-slate-400 font-medium">Read-only access enabled.</p>}
         </div>
+
+        {/* Fund Source Search Input */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Filter by Fund Source..."
+            className="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-slate-200 transition-all w-full sm:w-64"
+            value={fundSourceSearch}
+            onChange={e => setFundSourceSearch(e.target.value)}
+          />
+          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        </div>
+
         {isAdmin && (
           <button
             onClick={() => {
@@ -327,7 +341,11 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {outflows.map(out => (
+            {outflows.filter(out => {
+              if (!fundSourceSearch) return true;
+              const sourceName = inflows.find(i => i.id === out.inflowId)?.source || '';
+              return sourceName.toLowerCase().includes(fundSourceSearch.toLowerCase());
+            }).map(out => (
               <tr key={out.id} className="hover:bg-slate-50 group">
                 <td className="px-6 py-4 text-sm text-slate-500">{out.date}</td>
                 <td className="px-6 py-4">
