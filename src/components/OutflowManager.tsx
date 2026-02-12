@@ -14,7 +14,7 @@ interface OutflowManagerProps {
   isAdmin: boolean;
 }
 
-const CATEGORIES = ['Cost of Goods', 'Office', 'Marketing', 'Rent', 'Taxes', 'Wages', 'Misc'];
+const CATEGORIES = ['Cost of Goods', 'Office', 'Marketing', 'Rent', 'Taxes', 'Wages', 'Banking', 'Misc'];
 
 const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAdd, onUpdate, onDelete, isAdmin }) => {
   const [showForm, setShowForm] = useState(false);
