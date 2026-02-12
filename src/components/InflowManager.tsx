@@ -5,7 +5,7 @@ import { Calendar } from './ui/Calendar';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
 import { generateUUID } from '../lib/utils';
-import { Landmark, Smartphone, CreditCard, StickyNote, Pencil } from 'lucide-react';
+import { Landmark, Smartphone, CreditCard, StickyNote, Pencil, RefreshCw } from 'lucide-react';
 
 interface InflowManagerProps {
   inflows: Inflow[];
@@ -13,6 +13,7 @@ interface InflowManagerProps {
   onUpdate: (inflow: Inflow) => void;
   onDelete: (id: string) => void;
   onRepay: (debtId: string, surplusId: string, amount: number) => void;
+  onRecalculate: (id: string) => void;
   isAdmin: boolean;
 }
 
@@ -29,7 +30,7 @@ const PRODUCTS = [
   'Gardening'
 ];
 
-const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate, onDelete, onRepay, isAdmin }) => {
+const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate, onDelete, onRepay, onRecalculate, isAdmin }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -373,6 +374,13 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                   {isAdmin && (
                     <td className="px-8 py-5 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1">
+                        <button
+                          onClick={() => onRecalculate(inf.id)}
+                          className="mr-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 p-3 rounded-xl transition-all"
+                          title="Recalculate Balance (Fix Sync)"
+                        >
+                          <RefreshCw size={18} />
+                        </button>
                         {inf.remainingBalance < 0 && (
                           <button
                             onClick={() => setShowRepayModal(inf.id)}

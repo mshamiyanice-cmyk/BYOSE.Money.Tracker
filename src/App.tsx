@@ -104,7 +104,57 @@ const App: React.FC = () => {
 
   const updateOutflow = async (updatedOutflow: Outflow) => {
     if (!isAdmin || !user) return;
-    await db.collection('companies').doc('byose_tech_main').collection('outflows').doc(updatedOutflow.id).update(updatedOutflow as any);
+    const companyRef = db.collection('companies').doc('byose_tech_main');
+    const outflowRef = companyRef.collection('outflows').doc(updatedOutflow.id);
+    const inflowRef = companyRef.collection('inflows').doc(updatedOutflow.inflowId);
+
+    try {
+      await db.runTransaction(async (transaction) => {
+        const outflowDoc = await transaction.get(outflowRef);
+        const inflowDoc = await transaction.get(inflowRef);
+
+        if (!outflowDoc.exists || !inflowDoc.exists) {
+          throw new Error("Document does not exist!");
+        }
+
+        const oldOutflow = outflowDoc.data() as Outflow;
+        const inflowData = inflowDoc.data() as Inflow;
+
+        // Calculate difference: (Old Amount - New Amount)
+        // If we increased expense (100 -> 200), we descend balance (-100)
+        // If we decreased expense (200 -> 100), we ascend balance (+100)
+        const balanceCorrection = oldOutflow.amount - updatedOutflow.amount;
+        const newBalance = inflowData.remainingBalance + balanceCorrection;
+
+        transaction.update(inflowRef, { remainingBalance: newBalance });
+        transaction.update(outflowRef, updatedOutflow);
+      });
+    } catch (error) {
+      console.error("Update failed: ", error);
+      alert("Failed to update expense: " + error);
+    }
+  };
+
+  const recalculateInflowBalance = async (inflowId: string) => {
+    if (!isAdmin || !user) return;
+    const companyRef = db.collection('companies').doc('byose_tech_main');
+    const inflowRef = companyRef.collection('inflows').doc(inflowId);
+
+    try {
+      const outflowSnaps = await companyRef.collection('outflows').where('inflowId', '==', inflowId).get();
+      const totalOut = outflowSnaps.docs.reduce((acc, doc) => acc + (doc.data() as Outflow).amount, 0);
+
+      const inflowDoc = await inflowRef.get();
+      if (inflowDoc.exists) {
+        const inf = inflowDoc.data() as Inflow;
+        // Balance = Initial Amount - Sum of Outflows
+        await inflowRef.update({ remainingBalance: inf.amount - totalOut });
+        alert(`Recalculated! Total Out: ${totalOut.toLocaleString()}. New Balance: ${(inf.amount - totalOut).toLocaleString()}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Recalculation failed");
+    }
   };
 
   const addOutflow = async (outflow: Outflow) => {
@@ -258,7 +308,7 @@ const App: React.FC = () => {
                     <Route path="/" element={<Dashboard inflows={inflows} outflows={outflows} />} />
                     <Route path="/ledger" element={<UnifiedLedger inflows={inflows} outflows={outflows} overdrafts={overdrafts} />} />
                     <Route path="/calendar" element={<CalendarView inflows={inflows} outflows={outflows} />} />
-                    <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} />} />
+                    <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} onRecalculate={recalculateInflowBalance} />} />
                     <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onUpdate={updateOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
                     <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onUpdate={updateOverdraft} onSettle={settleOverdraft} onDelete={() => { }} isAdmin={isAdmin} />} />
                     <Route path="/tracker" element={<FlowTracker inflows={inflows} outflows={outflows} />} />
