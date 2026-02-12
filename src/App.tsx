@@ -106,29 +106,51 @@ const App: React.FC = () => {
     if (!isAdmin || !user) return;
     const companyRef = db.collection('companies').doc('byose_tech_main');
     const outflowRef = companyRef.collection('outflows').doc(updatedOutflow.id);
-    const inflowRef = companyRef.collection('inflows').doc(updatedOutflow.inflowId);
 
     try {
       await db.runTransaction(async (transaction) => {
         const outflowDoc = await transaction.get(outflowRef);
-        const inflowDoc = await transaction.get(inflowRef);
-
-        if (!outflowDoc.exists || !inflowDoc.exists) {
-          throw new Error("Document does not exist!");
-        }
+        if (!outflowDoc.exists) throw new Error("Outflow document does not exist!");
 
         const oldOutflow = outflowDoc.data() as Outflow;
-        const inflowData = inflowDoc.data() as Inflow;
 
-        // Calculate difference: (Old Amount - New Amount)
-        // If we increased expense (100 -> 200), we descend balance (-100)
-        // If we decreased expense (200 -> 100), we ascend balance (+100)
-        const balanceCorrection = oldOutflow.amount - updatedOutflow.amount;
-        const newBalance = inflowData.remainingBalance + balanceCorrection;
+        // Case 1: Fund Source (Inflow) Changing
+        if (oldOutflow.inflowId !== updatedOutflow.inflowId) {
+          const oldInflowRef = companyRef.collection('inflows').doc(oldOutflow.inflowId);
+          const newInflowRef = companyRef.collection('inflows').doc(updatedOutflow.inflowId);
 
-        transaction.update(inflowRef, { remainingBalance: newBalance });
+          const oldInflowDoc = await transaction.get(oldInflowRef);
+          const newInflowDoc = await transaction.get(newInflowRef);
+
+          if (!oldInflowDoc.exists || !newInflowDoc.exists) throw new Error("One of the fund sources does not exist!");
+
+          const oldInflow = oldInflowDoc.data() as Inflow;
+          const newInflow = newInflowDoc.data() as Inflow;
+
+          // Refund the old source completely
+          transaction.update(oldInflowRef, { remainingBalance: oldInflow.remainingBalance + oldOutflow.amount });
+
+          // Deduct from the new source
+          transaction.update(newInflowRef, { remainingBalance: newInflow.remainingBalance - updatedOutflow.amount });
+
+        } else {
+          // Case 2: Same Fund Source, amount might have changed
+          const inflowRef = companyRef.collection('inflows').doc(oldOutflow.inflowId);
+          const inflowDoc = await transaction.get(inflowRef);
+          if (!inflowDoc.exists) throw new Error("Fund source does not exist!");
+
+          const inflowData = inflowDoc.data() as Inflow;
+
+          // Logic: If old was 100, new is 150. Diff is -50. Balance + (-50) = Balance - 50. Correct.
+          // Logic: If old was 100, new is 50. Diff is 50. Balance + 50. Correct.
+          const balanceCorrection = oldOutflow.amount - updatedOutflow.amount;
+          transaction.update(inflowRef, { remainingBalance: inflowData.remainingBalance + balanceCorrection });
+        }
+
+        // Finally update the outflow itself
         transaction.update(outflowRef, updatedOutflow);
       });
+      // alert("Expense updated successfully!");
     } catch (error) {
       console.error("Update failed: ", error);
       alert("Failed to update expense: " + error);

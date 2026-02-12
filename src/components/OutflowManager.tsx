@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { generateUUID } from '../lib/utils';
 import { Inflow, Outflow } from '../types';
-import { StickyNote, Landmark, Smartphone, CreditCard, Hand } from 'lucide-react';
+import { StickyNote, Landmark, Smartphone, CreditCard, Hand, Pencil } from 'lucide-react';
 
 interface OutflowManagerProps {
   inflows: Inflow[];
@@ -21,6 +21,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [noteModal, setNoteModal] = useState<{ id: string, text: string } | null>(null);
   const [formData, setFormData] = useState({
     purpose: '',
@@ -63,18 +64,36 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
 
     setIsSubmitting(true);
     try {
-      await onAdd({
-        id: generateUUID(),
-        purpose: formData.purpose,
-        category: formData.category,
-        amount: amountNum,
-        date: formData.date,
-        seller: formData.seller,
-        inflowId: formData.inflowId,
-        expenseName: isDetailRequired ? formData.expenseName : null,
-        paymentMethod: formData.paymentMethod,
-        accountNumber: formData.accountNumber
-      });
+      if (editingId) {
+        await onUpdate({
+          id: editingId,
+          purpose: formData.purpose,
+          category: formData.category,
+          amount: amountNum,
+          date: formData.date,
+          seller: formData.seller,
+          inflowId: formData.inflowId,
+          expenseName: isDetailRequired ? formData.expenseName : undefined,
+          paymentMethod: formData.paymentMethod,
+          accountNumber: formData.accountNumber,
+          // Preserve existing notes if not editing them here? Or keep them as is.
+          notes: outflows.find(o => o.id === editingId)?.notes
+        });
+      } else {
+        await onAdd({
+          id: generateUUID(),
+          purpose: formData.purpose,
+          category: formData.category,
+          amount: amountNum,
+          date: formData.date,
+          seller: formData.seller,
+          inflowId: formData.inflowId,
+          expenseName: isDetailRequired ? formData.expenseName : undefined,
+          paymentMethod: formData.paymentMethod,
+          accountNumber: formData.accountNumber
+        });
+      }
+
       setFormData({
         purpose: '',
         category: 'Cost of Goods',
@@ -87,6 +106,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
         accountNumber: ''
       });
       setShowForm(false);
+      setEditingId(null);
     } catch (error) {
       console.error(error);
     } finally {
@@ -115,7 +135,25 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
         </div>
         {isAdmin && (
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setShowForm(!showForm);
+              if (showForm) setEditingId(null); // Clear editing if cancelling
+              if (!showForm && editingId) setEditingId(null); // Clear if opening fresh
+              if (!showForm) {
+                // Reset form when opening new
+                setFormData({
+                  purpose: '',
+                  category: 'Cost of Goods',
+                  amount: '',
+                  date: new Date().toISOString().split('T')[0],
+                  seller: '',
+                  inflowId: '',
+                  expenseName: '',
+                  paymentMethod: 'Bank',
+                  accountNumber: ''
+                });
+              }
+            }}
             disabled={availableInflows.length === 0}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${availableInflows.length === 0
               ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -270,7 +308,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
             className={`mt-6 w-full ${isSubmitting ? 'bg-slate-400' : 'bg-rose-600 hover:bg-rose-700'} text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2`}
           >
             {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {isSubmitting ? 'Processing Audit...' : 'Log Expense'}
+            {isSubmitting ? 'Processing...' : (editingId ? 'Update Expense' : 'Log Expense')}
           </button>
         </form>
       )}
@@ -321,6 +359,27 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                       className={`p-2 mr-2 rounded-lg transition-all ${out.notes ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-slate-300 hover:text-amber-500 hover:bg-amber-50'}`}
                     >
                       <StickyNote size={18} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingId(out.id);
+                        setFormData({
+                          purpose: out.purpose,
+                          category: out.category,
+                          amount: out.amount.toString(), // formatNumberWithCommas might be needed if using that specific input logic
+                          date: out.date,
+                          seller: out.seller,
+                          inflowId: out.inflowId,
+                          expenseName: out.expenseName || '',
+                          paymentMethod: out.paymentMethod || 'Bank',
+                          accountNumber: out.accountNumber || ''
+                        });
+                        setShowForm(true);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="p-2 mr-2 text-slate-300 hover:text-blue-600 transition-colors"
+                    >
+                      <Pencil size={18} />
                     </button>
                     <button
                       onClick={() => handleDelete(out.id)}
