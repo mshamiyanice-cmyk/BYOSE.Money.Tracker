@@ -11,6 +11,7 @@ import InflowManager from './components/InflowManager';
 import OutflowManager from './components/OutflowManager';
 import OverdraftManager from './components/OverdraftManager';
 import FlowTracker from './components/FlowTracker';
+import BankAccounts from './components/BankAccounts';
 import UnifiedLedger from './components/UnifiedLedger';
 import Sidebar from './components/Sidebar';
 import Auth from './components/AnimatedLogin';
@@ -423,6 +424,7 @@ const App: React.FC = () => {
                     <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} onRecalculate={recalculateInflowBalance} />} />
                     <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onUpdate={updateOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
                     <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onUpdate={updateOverdraft} onSettle={settleOverdraft} onDelete={deleteOverdraft} isAdmin={isAdmin} />} />
+                    <Route path="/banks" element={<BankAccounts inflows={inflows} outflows={outflows} />} />
                     <Route path="/tracker" element={<FlowTracker inflows={inflows} outflows={outflows} />} />
 
                     <Route path="/profile" element={<Profile user={user} profile={profile} onUpdate={setProfile} />} />

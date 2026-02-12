@@ -3,7 +3,7 @@ import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { auth } from '../services/firebase';
 import { Inflow, Overdraft, UserProfile } from '../types';
-import { X, LogOut, UserCircle, LayoutDashboard, ListTodo, Calendar, TrendingUp, TrendingDown, Receipt, Route } from 'lucide-react';
+import { X, LogOut, UserCircle, LayoutDashboard, ListTodo, Calendar, TrendingUp, TrendingDown, Receipt, Route, Building2 } from 'lucide-react';
 import './responsive.css';
 
 
@@ -25,6 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userEmail, inflows, overdrafts, isAdm
     { to: '/inflows', icon: TrendingUp, label: 'Inflows' },
     { to: '/outflows', icon: TrendingDown, label: 'Outflows' },
     { to: '/overdrafts', icon: Receipt, label: 'Overdrafts' },
+    { to: '/banks', icon: Building2, label: 'Banks' },
     { to: '/tracker', icon: Route, label: 'Flow Tracker' },
     { to: '/profile', icon: UserCircle, label: 'Profile' },
   ];
