@@ -5,7 +5,7 @@ import { Calendar } from './ui/Calendar';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
 import { generateUUID } from '../lib/utils';
-import { Landmark, Smartphone, CreditCard, StickyNote } from 'lucide-react';
+import { Landmark, Smartphone, CreditCard, StickyNote, Pencil } from 'lucide-react';
 
 interface InflowManagerProps {
   inflows: Inflow[];
@@ -52,6 +52,7 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
   });
 
   const [noteModal, setNoteModal] = useState<{ id: string, text: string } | null>(null);
+  const [balanceEditModal, setBalanceEditModal] = useState<{ id: string, currentBalance: number } | null>(null);
 
   const formatNumberWithCommas = (val: string) => {
     const numericValue = val.replace(/[^0-9]/g, '');
@@ -327,6 +328,15 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                       {inf.remainingBalance < 0 && (
                         <span className="bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded animate-pulse">LIABILITY</span>
                       )}
+                      {isAdmin && (
+                        <button
+                          onClick={() => setBalanceEditModal({ id: inf.id, currentBalance: inf.remainingBalance })}
+                          className="ml-1 text-slate-300 hover:text-[#165b4c] opacity-0 group-hover:opacity-100 transition-all p-1"
+                          title="Correct Balance Discrepancy"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400 whitespace-nowrap">{inf.amount.toLocaleString()} RWF</td>
@@ -394,6 +404,50 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                 className="flex-1 py-3 rounded-xl font-bold bg-[#165b4c] text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
               >
                 Save Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {balanceEditModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md scale-100 animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Pencil className="text-[#165b4c]" />
+              Manual Balance Correction
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Use this tool to fix "Ghost Deductions" or data sync errors. This will forcefully overwrite the remaining balance.
+            </p>
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Correct Balance (RWF)</label>
+              <input
+                type="number"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#165b4c] text-slate-900 font-bold font-mono text-xl"
+                value={balanceEditModal.currentBalance}
+                onChange={e => setBalanceEditModal({ ...balanceEditModal, currentBalance: parseFloat(e.target.value) || 0 })}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setBalanceEditModal(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const item = inflows.find(i => i.id === balanceEditModal.id);
+                  if (item) {
+                    onUpdate({ ...item, remainingBalance: balanceEditModal.currentBalance });
+                  }
+                  setBalanceEditModal(null);
+                }}
+                className="flex-1 py-3 rounded-xl font-bold bg-[#165b4c] text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+              >
+                Update Balance
               </button>
             </div>
           </div>
