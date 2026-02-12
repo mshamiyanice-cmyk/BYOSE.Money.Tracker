@@ -57,38 +57,19 @@ const App: React.FC = () => {
     // const userRef = db.collection('users').doc(user.uid); -> OLD
     const companyRef = db.collection('companies').doc('byose_tech_main'); // Hardcoded ID matching firebase.ts export
 
-    const unsubInflows = companyRef.collection('inflows').onSnapshot(snapshot => {
+    const unsubInflows = companyRef.collection('inflows').orderBy('date', 'desc').onSnapshot(snapshot => {
       setInflows(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Inflow)));
     });
-    const unsubOutflows = companyRef.collection('outflows').onSnapshot(snapshot => {
+    const unsubOutflows = companyRef.collection('outflows').orderBy('date', 'desc').onSnapshot(snapshot => {
       setOutflows(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Outflow)));
     });
-    const unsubOverdrafts = companyRef.collection('overdrafts').onSnapshot(snapshot => {
+    const unsubOverdrafts = companyRef.collection('overdrafts').orderBy('date', 'desc').onSnapshot(snapshot => {
       setOverdrafts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Overdraft)));
     });
     return () => { unsubInflows(); unsubOutflows(); unsubOverdrafts(); };
   }, [user?.uid]);
 
-  const syncUserProfile = async (firebaseUser: firebase.User) => {
-    try {
-      // User Profiles remain personal
-      const userDocRef = db.collection('users').doc(firebaseUser.uid);
-      const userDoc = await userDocRef.get();
-      if (userDoc.exists) {
-        setProfile(userDoc.data() as UserProfile);
-      } else {
-        const profileData: UserProfile = {
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName || 'BYOSE Tech Member',
-          email: firebaseUser.email || '',
-          photoFileName: 'default_avatar.png',
-          createdAt: new Date().toISOString()
-        };
-        await userDocRef.set(profileData);
-        setProfile(profileData);
-      }
-    } catch (err) { console.error(err); }
-  };
+  // ... syncUserProfile ...
 
   const handleLogout = async () => { try { await auth.signOut(); } catch (err) { console.error(err); } };
 
@@ -111,12 +92,24 @@ const App: React.FC = () => {
     if (!isAdmin || !user) return;
     const companyRef = db.collection('companies').doc('byose_tech_main');
     const inflowRef = companyRef.collection('inflows').doc(outflow.inflowId);
-    const inflowDoc = await inflowRef.get();
-    if (inflowDoc.exists) {
-      const inflowData = inflowDoc.data() as Inflow;
-      await inflowRef.update({ remainingBalance: inflowData.remainingBalance - outflow.amount });
+
+    try {
+      await db.runTransaction(async (transaction) => {
+        const inflowDoc = await transaction.get(inflowRef);
+        if (!inflowDoc.exists) {
+          throw new Error("Source inflow does not exist!");
+        }
+
+        const inflowData = inflowDoc.data() as Inflow;
+        const newBalance = inflowData.remainingBalance - outflow.amount;
+
+        transaction.update(inflowRef, { remainingBalance: newBalance });
+        transaction.set(companyRef.collection('outflows').doc(outflow.id), outflow);
+      });
+    } catch (error) {
+      console.error("Transaction failed: ", error);
+      alert("Failed to record expense: " + error);
     }
-    await companyRef.collection('outflows').doc(outflow.id).set(outflow);
   };
 
   // ... existing code ...
