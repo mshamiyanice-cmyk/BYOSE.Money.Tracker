@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { generateUUID } from '../lib/utils';
 import { Inflow, Outflow } from '../types';
+import { BANK_ACCOUNTS } from '../constants';
 import { StickyNote, Landmark, Smartphone, CreditCard, Hand, Pencil } from 'lucide-react';
 
 interface OutflowManagerProps {
@@ -289,16 +290,45 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
 
               {(formData.paymentMethod === 'Bank' || formData.paymentMethod === 'Momo') && (
                 <div className="space-y-2 animate-in slide-in-from-left-2 duration-300">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {formData.paymentMethod === 'Bank' ? 'Select Corporate Account' : 'Account Number'}
+                  </label>
                   <div className="relative">
                     <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input
-                      type="text" required
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-900 outline-none font-mono font-bold"
-                      value={formData.accountNumber}
-                      onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
-                      placeholder="XXXX-XXXX-XXXX"
-                    />
+                    {formData.paymentMethod === 'Bank' ? (
+                      <select
+                        required
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-900 outline-none font-bold appearance-none"
+                        value={formData.accountNumber}
+                        onChange={e => {
+                          const selectedAcc = BANK_ACCOUNTS.find(acc => acc.number === e.target.value);
+                          if (selectedAcc) {
+                            setFormData({
+                              ...formData,
+                              accountNumber: e.target.value,
+                              currency: selectedAcc.currency // Auto-switch currency
+                            });
+                          } else {
+                            setFormData({ ...formData, accountNumber: e.target.value });
+                          }
+                        }}
+                      >
+                        <option value="">Choose Account...</option>
+                        {BANK_ACCOUNTS.map(acc => (
+                          <option key={acc.number} value={acc.number}>
+                            {acc.name} — {acc.currency} (********{acc.number.slice(-4)})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text" required
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-900 outline-none font-mono font-bold"
+                        value={formData.accountNumber}
+                        onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
+                        placeholder="XXXX-XXXX-XXXX"
+                      />
+                    )}
                   </div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount ({formData.currency})</label>
                   <div className="flex gap-4">
