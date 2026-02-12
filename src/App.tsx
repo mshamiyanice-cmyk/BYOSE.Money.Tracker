@@ -281,6 +281,38 @@ const App: React.FC = () => {
     await companyRef.collection('outflows').doc(id).delete();
   };
 
+  const deleteOverdraft = async (id: string) => {
+    if (!isAdmin || !user) return;
+    const overdraftRef = db.collection('companies').doc('byose_tech_main').collection('overdrafts').doc(id);
+    const doc = await overdraftRef.get();
+    if (!doc.exists) return;
+
+    const od = doc.data() as Overdraft;
+
+    // If settled, attempt refund by finding the associated payment outflow
+    if (od.isSettled && od.settledWithInflowId) {
+      // Find outflows that look like this settlement
+      const potentialOutflows = await db.collection('companies').doc('byose_tech_main').collection('outflows')
+        .where('inflowId', '==', od.settledWithInflowId)
+        .where('seller', '==', od.seller)
+        .where('expenseName', '==', 'Overdraft Settle')
+        .get();
+
+      if (!potentialOutflows.empty) {
+        // Found matching payment records (likely just one)
+        // Delete them to refund the pot using existing logic
+        for (const outDoc of potentialOutflows.docs) {
+          await deleteOutflow(outDoc.id);
+        }
+        alert("Associated payment refunded automatically.");
+      } else {
+        alert("Overdraft deleted. Note: Could not find associated payment record to refund automatically.");
+      }
+    }
+
+    await overdraftRef.delete();
+  };
+
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-[#165b4c] border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
@@ -310,7 +342,7 @@ const App: React.FC = () => {
                     <Route path="/calendar" element={<CalendarView inflows={inflows} outflows={outflows} />} />
                     <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} onRecalculate={recalculateInflowBalance} />} />
                     <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onUpdate={updateOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
-                    <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onUpdate={updateOverdraft} onSettle={settleOverdraft} onDelete={() => { }} isAdmin={isAdmin} />} />
+                    <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onUpdate={updateOverdraft} onSettle={settleOverdraft} onDelete={deleteOverdraft} isAdmin={isAdmin} />} />
                     <Route path="/tracker" element={<FlowTracker inflows={inflows} outflows={outflows} />} />
 
                     <Route path="/profile" element={<Profile user={user} profile={profile} onUpdate={setProfile} />} />
