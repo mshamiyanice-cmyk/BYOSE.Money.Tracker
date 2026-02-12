@@ -8,9 +8,9 @@ import { StickyNote, Landmark, Smartphone, CreditCard } from 'lucide-react';
 interface OutflowManagerProps {
   inflows: Inflow[];
   outflows: Outflow[];
-  onAdd: (outflow: Outflow) => void;
-  onUpdate: (outflow: Outflow) => void;
-  onDelete: (id: string) => void;
+  onAdd: (outflow: Outflow) => Promise<void>;
+  onUpdate: (outflow: Outflow) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -18,6 +18,8 @@ const CATEGORIES = ['Cost of Goods', 'Office', 'Marketing', 'Rent', 'Taxes', 'Wa
 
 const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAdd, onUpdate, onDelete, isAdmin }) => {
   const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [noteModal, setNoteModal] = useState<{ id: string, text: string } | null>(null);
   const [formData, setFormData] = useState({
     purpose: '',
@@ -44,7 +46,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
     setFormData({ ...formData, amount: formatNumberWithCommas(val) });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) return;
     const rawAmount = formData.amount.replace(/,/g, '');
@@ -58,30 +60,49 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
       if (!confirm(`Insufficient funds in ${selectedInflow.source}. Log as debt?`)) return;
     }
 
-    onAdd({
-      id: generateUUID(),
-      purpose: formData.purpose,
-      category: formData.category,
-      amount: amountNum,
-      date: formData.date,
-      seller: formData.seller,
-      inflowId: formData.inflowId,
-      expenseName: isDetailRequired ? formData.expenseName : null,
-      paymentMethod: formData.paymentMethod,
-      accountNumber: formData.accountNumber
-    });
-    setFormData({
-      purpose: '',
-      category: 'Cost of Goods',
-      amount: '',
-      date: new Date().toISOString().split('T')[0],
-      seller: '',
-      inflowId: '',
-      expenseName: '',
-      paymentMethod: 'Bank',
-      accountNumber: ''
-    });
-    setShowForm(false);
+    setIsSubmitting(true);
+    try {
+      await onAdd({
+        id: generateUUID(),
+        purpose: formData.purpose,
+        category: formData.category,
+        amount: amountNum,
+        date: formData.date,
+        seller: formData.seller,
+        inflowId: formData.inflowId,
+        expenseName: isDetailRequired ? formData.expenseName : null,
+        paymentMethod: formData.paymentMethod,
+        accountNumber: formData.accountNumber
+      });
+      setFormData({
+        purpose: '',
+        category: 'Cost of Goods',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        seller: '',
+        inflowId: '',
+        expenseName: '',
+        paymentMethod: 'Bank',
+        accountNumber: ''
+      });
+      setShowForm(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this expense? This will refund the amount to the source pot.")) return;
+    setDeletingId(id);
+    try {
+      await onDelete(id);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -235,8 +256,13 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
               />
             </div>
           </div>
-          <button type="submit" className="mt-6 w-full bg-rose-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-rose-700 transition-all active:scale-[0.98]">
-            Log Expense
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`mt-6 w-full ${isSubmitting ? 'bg-slate-400' : 'bg-rose-600 hover:bg-rose-700'} text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2`}
+          >
+            {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+            {isSubmitting ? 'Processing Audit...' : 'Log Expense'}
           </button>
         </form>
       )}
@@ -286,7 +312,13 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                     >
                       <StickyNote size={18} />
                     </button>
-                    <button onClick={() => onDelete(out.id)} className="text-slate-300 hover:text-rose-600 p-2 transition-colors"><i className="fas fa-trash-alt"></i></button>
+                    <button
+                      onClick={() => handleDelete(out.id)}
+                      disabled={deletingId === out.id}
+                      className="text-slate-300 hover:text-rose-600 p-2 transition-colors"
+                    >
+                      {deletingId === out.id ? <div className="w-4 h-4 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" /> : <i className="fas fa-trash-alt"></i>}
+                    </button>
                   </td>
                 )}
               </tr>

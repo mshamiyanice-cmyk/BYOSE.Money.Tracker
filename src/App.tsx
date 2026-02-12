@@ -269,16 +269,32 @@ const App: React.FC = () => {
 
   const deleteOutflow = async (id: string) => {
     if (!isAdmin || !user) return;
-    const out = outflows.find(o => o.id === id);
-    if (!out) return;
+
+    // Optimistic UI update could go here, but for now we rely on Snapshot
+
     const companyRef = db.collection('companies').doc('byose_tech_main');
-    const infRef = companyRef.collection('inflows').doc(out.inflowId);
-    const infDoc = await infRef.get();
-    if (infDoc.exists) {
-      const infData = infDoc.data() as Inflow;
-      await infRef.update({ remainingBalance: infData.remainingBalance + out.amount });
+    const outflowRef = companyRef.collection('outflows').doc(id);
+
+    try {
+      await db.runTransaction(async (transaction) => {
+        const outDoc = await transaction.get(outflowRef);
+        if (!outDoc.exists) return; // Already deleted
+
+        const out = outDoc.data() as Outflow;
+        const inflowRef = companyRef.collection('inflows').doc(out.inflowId);
+        const infDoc = await transaction.get(inflowRef);
+
+        if (infDoc.exists) {
+          const infData = infDoc.data() as Inflow;
+          transaction.update(inflowRef, { remainingBalance: infData.remainingBalance + out.amount });
+        }
+
+        transaction.delete(outflowRef);
+      });
+    } catch (error) {
+      console.error("Delete failed: ", error);
+      alert("Failed to delete expense: " + error);
     }
-    await companyRef.collection('outflows').doc(id).delete();
   };
 
   const deleteOverdraft = async (id: string) => {

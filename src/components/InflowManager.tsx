@@ -9,11 +9,11 @@ import { Landmark, Smartphone, CreditCard, StickyNote, Pencil, RefreshCw } from 
 
 interface InflowManagerProps {
   inflows: Inflow[];
-  onAdd: (inflow: Inflow) => void;
-  onUpdate: (inflow: Inflow) => void;
-  onDelete: (id: string) => void;
-  onRepay: (debtId: string, surplusId: string, amount: number) => void;
-  onRecalculate: (id: string) => void;
+  onAdd: (inflow: Inflow) => Promise<void>;
+  onUpdate: (inflow: Inflow) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onRepay: (debtId: string, surplusId: string, amount: number) => Promise<void>;
+  onRecalculate: (id: string) => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -32,6 +32,9 @@ const PRODUCTS = [
 
 const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate, onDelete, onRepay, onRecalculate, isAdmin }) => {
   const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [recalculatingId, setRecalculatingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showRepayModal, setShowRepayModal] = useState<string | null>(null);
@@ -103,11 +106,12 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (editingId) {
         const original = inflows.find(i => i.id === editingId);
         if (original) {
-          onUpdate({
+          await onUpdate({
             ...original,
             source: formData.source,
             product: formData.product,
@@ -148,10 +152,36 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
         currency: 'RWF'
       });
       setShowForm(false);
+      setShowForm(false);
       setEditingId(null);
     } catch (err) {
       console.error("Error submitting form:", err);
       alert("Error submitting form: " + err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this inflow? This is a destructive action.")) return;
+    setDeletingId(id);
+    try {
+      await onDelete(id);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleRecalculate = async (id: string) => {
+    setRecalculatingId(id);
+    try {
+      await onRecalculate(id);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setRecalculatingId(null);
     }
   };
 
@@ -313,8 +343,13 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
               )}
             </div>
           </div>
-          <button type="submit" className="mt-10 w-full h-14 text-lg font-black rounded-2xl shadow-xl shadow-[#165b4c]/20 hover:shadow-[#165b4c]/30 transition-all active:scale-95 bg-[#165b4c] text-white flex items-center justify-center">
-            {editingId ? 'Confirm Record Update' : 'Initialize Revenue Log'}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`mt-10 w-full h-14 text-lg font-black rounded-2xl shadow-xl transition-all active:scale-95 text-white flex items-center justify-center gap-2 ${isSubmitting ? 'bg-slate-400' : 'bg-[#165b4c] hover:shadow-[#165b4c]/30'}`}
+          >
+            {isSubmitting && <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+            {isSubmitting ? 'Processing...' : (editingId ? 'Confirm Record Update' : 'Initialize Revenue Log')}
           </button>
         </form>
       )}
@@ -375,11 +410,12 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                     <td className="px-8 py-5 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1">
                         <button
-                          onClick={() => onRecalculate(inf.id)}
+                          onClick={() => handleRecalculate(inf.id)}
+                          disabled={recalculatingId === inf.id}
                           className="mr-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 p-3 rounded-xl transition-all"
                           title="Recalculate Balance (Fix Sync)"
                         >
-                          <RefreshCw size={18} />
+                          <RefreshCw size={18} className={recalculatingId === inf.id ? 'animate-spin text-blue-500' : ''} />
                         </button>
                         {inf.remainingBalance < 0 && (
                           <button
@@ -396,7 +432,9 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                           <StickyNote size={18} />
                         </button>
                         <button onClick={() => handleEdit(inf)} className="text-slate-300 hover:text-[#165b4c] hover:bg-[#165b4c]/5 p-3 rounded-xl transition-all"><i className="fas fa-edit"></i></button>
-                        <button onClick={() => onDelete(inf.id)} className="text-slate-300 hover:text-rose-600 hover:bg-rose-50 p-3 rounded-xl transition-all"><i className="fas fa-trash-alt"></i></button>
+                        <button onClick={() => handleDelete(inf.id)} disabled={deletingId === inf.id} className="text-slate-300 hover:text-rose-600 hover:bg-rose-50 p-3 rounded-xl transition-all">
+                          {deletingId === inf.id ? <div className="w-4 h-4 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" /> : <i className="fas fa-trash-alt"></i>}
+                        </button>
                       </div>
                     </td>
                   )}
