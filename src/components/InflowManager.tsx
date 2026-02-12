@@ -43,7 +43,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
     date: new Date().toISOString().split('T')[0],
     description: '',
     paymentMethod: 'Bank' as 'Bank' | 'Momo',
-    accountNumber: ''
+    accountNumber: '',
+    currency: 'RWF' as 'RWF' | 'USD'
   });
 
   const [repayData, setRepayData] = useState({
@@ -79,7 +80,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
       date: inf.date,
       description: inf.description,
       paymentMethod: inf.paymentMethod || 'Bank',
-      accountNumber: inf.accountNumber || ''
+      accountNumber: inf.accountNumber || '',
+      currency: inf.currency || 'RWF'
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -113,7 +115,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
             date: formData.date,
             description: formData.description,
             paymentMethod: formData.paymentMethod,
-            accountNumber: formData.accountNumber
+            accountNumber: formData.accountNumber,
+            currency: formData.currency
           });
         }
       } else {
@@ -127,7 +130,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
           date: formData.date,
           description: formData.description,
           paymentMethod: formData.paymentMethod,
-          accountNumber: formData.accountNumber
+          accountNumber: formData.accountNumber,
+          currency: formData.currency
         });
         console.log("onAdd completed");
       }
@@ -139,7 +143,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
         date: new Date().toISOString().split('T')[0],
         description: '',
         paymentMethod: 'Bank',
-        accountNumber: ''
+        accountNumber: '',
+        currency: 'RWF'
       });
       setShowForm(false);
       setEditingId(null);
@@ -256,15 +261,38 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount (RWF)</label>
-              <input
-                type="text" required
-                inputMode="numeric"
-                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none text-slate-900 font-bold"
-                value={formData.amount}
-                onChange={handleAmountChange}
-                placeholder="0"
-              />
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Currency & Amount</label>
+              <div className="flex gap-4">
+                <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, currency: 'RWF' })}
+                    className={`px-4 py-3 rounded-lg text-sm font-bold transition-all ${formData.currency === 'RWF' ? 'bg-white text-[#165b4c] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    RWF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, currency: 'USD' })}
+                    className={`px-4 py-3 rounded-lg text-sm font-bold transition-all ${formData.currency === 'USD' ? 'bg-white text-[#165b4c] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    USD
+                  </button>
+                </div>
+                <div className="relative flex-1">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                    {formData.currency === 'RWF' ? 'RWF' : '$'}
+                  </span>
+                  <input
+                    type="text" required
+                    inputMode="numeric"
+                    className="w-full pl-14 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none text-slate-900 font-bold"
+                    value={formData.amount}
+                    onChange={handleAmountChange}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
             </div>
             <div className="space-y-2 relative">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date Logged</label>
@@ -323,7 +351,7 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                   <td className="px-8 py-5 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <span className={`font-mono font-black text-sm ${inf.remainingBalance < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
-                        {inf.remainingBalance.toLocaleString()} RWF
+                        {inf.remainingBalance.toLocaleString()} {inf.currency === 'USD' ? '$' : 'RWF'}
                       </span>
                       {inf.remainingBalance < 0 && (
                         <span className="bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded animate-pulse">LIABILITY</span>
@@ -339,7 +367,9 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                       )}
                     </div>
                   </td>
-                  <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400 whitespace-nowrap">{inf.amount.toLocaleString()} RWF</td>
+                  <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400 whitespace-nowrap">
+                    {inf.amount.toLocaleString()} {inf.currency === 'USD' ? '$' : 'RWF'}
+                  </td>
                   {isAdmin && (
                     <td className="px-8 py-5 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1">

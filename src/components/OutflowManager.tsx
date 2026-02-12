@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { generateUUID } from '../lib/utils';
 import { Inflow, Outflow } from '../types';
-import { StickyNote } from 'lucide-react';
+import { StickyNote, Landmark, Smartphone, CreditCard } from 'lucide-react';
 
 interface OutflowManagerProps {
   inflows: Inflow[];
@@ -26,7 +26,9 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
     date: new Date().toISOString().split('T')[0],
     seller: '',
     inflowId: '',
-    expenseName: ''
+    expenseName: '',
+    paymentMethod: 'Bank' as 'Bank' | 'Momo',
+    accountNumber: ''
   });
 
   const availableInflows = inflows;
@@ -64,9 +66,21 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
       date: formData.date,
       seller: formData.seller,
       inflowId: formData.inflowId,
-      expenseName: isDetailRequired ? formData.expenseName : null
+      expenseName: isDetailRequired ? formData.expenseName : null,
+      paymentMethod: formData.paymentMethod,
+      accountNumber: formData.accountNumber
     });
-    setFormData({ purpose: '', category: 'Cost of Goods', amount: '', date: new Date().toISOString().split('T')[0], seller: '', inflowId: '', expenseName: '' });
+    setFormData({
+      purpose: '',
+      category: 'Cost of Goods',
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      seller: '',
+      inflowId: '',
+      expenseName: '',
+      paymentMethod: 'Bank',
+      accountNumber: ''
+    });
     setShowForm(false);
   };
 
@@ -149,6 +163,45 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
               </div>
             )}
 
+            {/* Payment Method Section */}
+            <div className="space-y-4 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Payment Channel</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setFormData({ ...formData, paymentMethod: 'Bank' })}
+                    className={`cursor-pointer px-4 py-3 rounded-xl border-2 flex items-center justify-center gap-3 transition-all ${formData.paymentMethod === 'Bank' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                  >
+                    <Landmark size={18} />
+                    <span className="font-bold text-sm">Bank</span>
+                  </div>
+                  <div
+                    onClick={() => setFormData({ ...formData, paymentMethod: 'Momo' })}
+                    className={`cursor-pointer px-4 py-3 rounded-xl border-2 flex items-center justify-center gap-3 transition-all ${formData.paymentMethod === 'Momo' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                  >
+                    <Smartphone size={18} />
+                    <span className="font-bold text-sm">Momo</span>
+                  </div>
+                </div>
+              </div>
+
+              {(formData.paymentMethod === 'Bank' || formData.paymentMethod === 'Momo') && (
+                <div className="space-y-2 animate-in slide-in-from-left-2 duration-300">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input
+                      type="text" required
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-900 outline-none font-mono font-bold"
+                      value={formData.accountNumber}
+                      onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
+                      placeholder="XXXX-XXXX-XXXX"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-2">General Purpose</label>
               <input
@@ -206,6 +259,14 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                 <td className="px-6 py-4">
                   <p className="font-bold text-slate-800">{out.seller}</p>
                   <p className="text-[10px] text-slate-400 uppercase font-bold">{out.category}</p>
+
+                  {/* Payment Method Badge */}
+                  {out.paymentMethod && (
+                    <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-400 font-medium bg-slate-100 px-2 py-1 rounded-md w-fit">
+                      {out.paymentMethod === 'Bank' ? <Landmark size={10} /> : <Smartphone size={10} />}
+                      <span>{out.paymentMethod} {out.accountNumber ? `• ${out.accountNumber}` : ''}</span>
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <p className="text-sm text-slate-700 font-medium">

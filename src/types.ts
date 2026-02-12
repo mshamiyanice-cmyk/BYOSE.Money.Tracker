@@ -10,6 +10,7 @@ export interface Inflow {
   paymentMethod?: 'Bank' | 'Momo';
   accountNumber?: string;
   notes?: string;
+  currency?: 'RWF' | 'USD';
 }
 
 export interface Outflow {
@@ -22,6 +23,8 @@ export interface Outflow {
   inflowId: string; // Tracing which specific receipt this money came from
   expenseName?: string; // The specific name of the expense (used for COGS and Misc)
   notes?: string;
+  paymentMethod?: 'Bank' | 'Momo';
+  accountNumber?: string;
 }
 
 export interface Overdraft {
