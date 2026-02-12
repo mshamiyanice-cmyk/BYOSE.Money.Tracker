@@ -14,7 +14,7 @@ interface OutflowManagerProps {
   isAdmin: boolean;
 }
 
-const CATEGORIES = ['Cost of Goods', 'Office', 'Marketing', 'Rent', 'Taxes', 'Wages', 'Banking', 'Misc'];
+const CATEGORIES = ['Cost of Goods', 'Import', 'Office', 'Marketing', 'Rent', 'Taxes', 'Wages', 'Banking', 'Misc'];
 
 const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAdd, onUpdate, onDelete, isAdmin }) => {
   const [showForm, setShowForm] = useState(false);
@@ -34,7 +34,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
   });
 
   const availableInflows = inflows;
-  const isDetailRequired = formData.category === 'Cost of Goods' || formData.category === 'Misc';
+  const isDetailRequired = formData.category === 'Cost of Goods' || formData.category === 'Import' || formData.category === 'Misc';
 
   const formatNumberWithCommas = (val: string) => {
     const numericValue = val.replace(/[^0-9]/g, '');
@@ -179,7 +179,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
                   className="w-full px-4 py-3 bg-rose-50/30 border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-900 outline-none"
                   value={formData.expenseName}
                   onChange={e => setFormData({ ...formData, expenseName: e.target.value })}
-                  placeholder={formData.category === 'Cost of Goods' ? "e.g. 10 Bags of Cement" : "e.g. Office Repair"}
+                  placeholder={formData.category === 'Cost of Goods' ? "e.g. 10 Bags of Cement" : (formData.category === 'Import' ? "e.g. Customs Duty / Shipping" : "e.g. Office Repair")}
                 />
               </div>
             )}
