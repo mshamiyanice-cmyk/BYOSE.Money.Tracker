@@ -64,7 +64,7 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
       date: formData.date,
       seller: formData.seller,
       inflowId: formData.inflowId,
-      expenseName: isDetailRequired ? formData.expenseName : undefined
+      expenseName: isDetailRequired ? formData.expenseName : null
     });
     setFormData({ purpose: '', category: 'Cost of Goods', amount: '', date: new Date().toISOString().split('T')[0], seller: '', inflowId: '', expenseName: '' });
     setShowForm(false);

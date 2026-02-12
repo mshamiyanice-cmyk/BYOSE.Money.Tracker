@@ -122,8 +122,15 @@ const App: React.FC = () => {
         const inflowData = inflowDoc.data() as Inflow;
         const newBalance = inflowData.remainingBalance - outflow.amount;
 
+        // Sanitize object: remove undefined fields which break Firestore
+        // Also explicitly remove expenseName if it is undefined/null to be safe
+        const sanitizedOutflow = JSON.parse(JSON.stringify(outflow));
+        if (sanitizedOutflow.expenseName === undefined || sanitizedOutflow.expenseName === null) {
+          delete sanitizedOutflow.expenseName;
+        }
+
         transaction.update(inflowRef, { remainingBalance: newBalance });
-        transaction.set(companyRef.collection('outflows').doc(outflow.id), outflow);
+        transaction.set(companyRef.collection('outflows').doc(outflow.id), sanitizedOutflow);
       });
     } catch (error) {
       console.error("Transaction failed: ", error);
