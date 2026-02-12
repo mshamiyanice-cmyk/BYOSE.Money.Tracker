@@ -14,6 +14,7 @@ interface OutflowManagerProps {
   isAdmin: boolean;
 }
 
+// Categories updated to include Import
 const CATEGORIES = ['Cost of Goods', 'Import', 'Office', 'Marketing', 'Rent', 'Taxes', 'Wages', 'Banking', 'Misc'];
 
 const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAdd, onUpdate, onDelete, isAdmin }) => {
