@@ -5,7 +5,7 @@ import { Calendar } from './ui/Calendar';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
 import { generateUUID } from '../lib/utils';
-import { Landmark, Smartphone, CreditCard } from 'lucide-react';
+import { Landmark, Smartphone, CreditCard, StickyNote } from 'lucide-react';
 
 interface InflowManagerProps {
   inflows: Inflow[];
@@ -50,6 +50,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
     surplusId: '',
     amount: ''
   });
+
+  const [noteModal, setNoteModal] = useState<{ id: string, text: string } | null>(null);
 
   const formatNumberWithCommas = (val: string) => {
     const numericValue = val.replace(/[^0-9]/g, '');
@@ -339,6 +341,12 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                             SETTLE
                           </button>
                         )}
+                        <button
+                          onClick={() => setNoteModal({ id: inf.id, text: inf.notes || '' })}
+                          className={`p-3 rounded-xl transition-all ${inf.notes ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-slate-300 hover:text-amber-500 hover:bg-amber-50'}`}
+                        >
+                          <StickyNote size={18} />
+                        </button>
                         <button onClick={() => handleEdit(inf)} className="text-slate-300 hover:text-[#165b4c] hover:bg-[#165b4c]/5 p-3 rounded-xl transition-all"><i className="fas fa-edit"></i></button>
                         <button onClick={() => onDelete(inf.id)} className="text-slate-300 hover:text-rose-600 hover:bg-rose-50 p-3 rounded-xl transition-all"><i className="fas fa-trash-alt"></i></button>
                       </div>
@@ -353,6 +361,44 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
           </table>
         </div>
       </div>
+
+      {noteModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md scale-100 animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <StickyNote className="text-[#165b4c]" />
+              Attach Note to Transaction
+            </h3>
+            <textarea
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[120px] outline-none focus:ring-2 focus:ring-[#165b4c] text-slate-700 font-medium resize-none shadow-inner"
+              placeholder="e.g. Payment verified via email..."
+              value={noteModal.text}
+              onChange={e => setNoteModal({ ...noteModal, text: e.target.value })}
+              autoFocus
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setNoteModal(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const item = inflows.find(i => i.id === noteModal.id);
+                  if (item) {
+                    onUpdate({ ...item, notes: noteModal.text });
+                  }
+                  setNoteModal(null);
+                }}
+                className="flex-1 py-3 rounded-xl font-bold bg-[#165b4c] text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+              >
+                Save Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

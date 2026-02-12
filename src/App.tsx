@@ -102,6 +102,11 @@ const App: React.FC = () => {
     await db.collection('companies').doc('byose_tech_main').collection('inflows').doc(updatedInflow.id).update(updatedInflow as any);
   };
 
+  const updateOutflow = async (updatedOutflow: Outflow) => {
+    if (!isAdmin || !user) return;
+    await db.collection('companies').doc('byose_tech_main').collection('outflows').doc(updatedOutflow.id).update(updatedOutflow as any);
+  };
+
   const addOutflow = async (outflow: Outflow) => {
     if (!isAdmin || !user) return;
     const companyRef = db.collection('companies').doc('byose_tech_main');
@@ -113,6 +118,10 @@ const App: React.FC = () => {
     }
     await companyRef.collection('outflows').doc(outflow.id).set(outflow);
   };
+
+  // ... existing code ...
+
+
 
   const addOverdraft = async (overdraft: Overdraft) => {
     if (!isAdmin || !user) return;
@@ -226,7 +235,7 @@ const App: React.FC = () => {
                     <Route path="/ledger" element={<UnifiedLedger inflows={inflows} outflows={outflows} overdrafts={overdrafts} />} />
                     <Route path="/calendar" element={<CalendarView inflows={inflows} outflows={outflows} />} />
                     <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} />} />
-                    <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
+                    <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onUpdate={updateOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
                     <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onSettle={settleOverdraft} onDelete={() => { }} isAdmin={isAdmin} />} />
                     <Route path="/tracker" element={<FlowTracker inflows={inflows} outflows={outflows} />} />
 
