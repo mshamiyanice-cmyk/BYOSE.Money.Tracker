@@ -148,7 +148,14 @@ const App: React.FC = () => {
         }
 
         // Finally update the outflow itself
-        transaction.update(outflowRef, updatedOutflow);
+        // Ensure no undefined fields are passed
+        const sanitizeOutflow = (data: Outflow) => {
+          const clean = { ...data };
+          Object.keys(clean).forEach(key => clean[key as keyof Outflow] === undefined && delete clean[key as keyof Outflow]);
+          return clean;
+        };
+
+        transaction.update(outflowRef, sanitizeOutflow(updatedOutflow));
       });
       // alert("Expense updated successfully!");
     } catch (error) {
