@@ -147,6 +147,11 @@ const App: React.FC = () => {
     await db.collection('companies').doc('byose_tech_main').collection('overdrafts').doc(overdraft.id).set(overdraft);
   };
 
+  const updateOverdraft = async (updatedOverdraft: Overdraft) => {
+    if (!isAdmin || !user) return;
+    await db.collection('companies').doc('byose_tech_main').collection('overdrafts').doc(updatedOverdraft.id).update(updatedOverdraft as any);
+  };
+
   const settleOverdraft = async (overdraftId: string, inflowId: string) => {
     if (!isAdmin || !user) return;
     const od = overdrafts.find(o => o.id === overdraftId);
@@ -255,7 +260,7 @@ const App: React.FC = () => {
                     <Route path="/calendar" element={<CalendarView inflows={inflows} outflows={outflows} />} />
                     <Route path="/inflows" element={<InflowManager inflows={inflows} onAdd={addInflow} onUpdate={updateInflow} onDelete={deleteInflow} isAdmin={isAdmin} onRepay={() => { }} />} />
                     <Route path="/outflows" element={<OutflowManager inflows={inflows} outflows={outflows} onAdd={addOutflow} onUpdate={updateOutflow} onDelete={deleteOutflow} isAdmin={isAdmin} />} />
-                    <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onSettle={settleOverdraft} onDelete={() => { }} isAdmin={isAdmin} />} />
+                    <Route path="/overdrafts" element={<OverdraftManager inflows={inflows} overdrafts={overdrafts} onAdd={addOverdraft} onUpdate={updateOverdraft} onSettle={settleOverdraft} onDelete={() => { }} isAdmin={isAdmin} />} />
                     <Route path="/tracker" element={<FlowTracker inflows={inflows} outflows={outflows} />} />
 
                     <Route path="/profile" element={<Profile user={user} profile={profile} onUpdate={setProfile} />} />

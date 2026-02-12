@@ -35,6 +35,7 @@ export interface Overdraft {
   seller: string;
   isSettled: boolean;
   settledWithInflowId?: string;
+  notes?: string;
 }
 
 export interface UserProfile {

@@ -2,20 +2,23 @@ import React, { useState } from 'react';
 import { Inflow, Overdraft } from '../types';
 import { generateUUID } from '../lib/utils';
 import { Button } from './ui/button';
-import { TriangleAlert, ReceiptText, CheckCircle2, Trash2, Wallet, Plus, X as CloseIcon } from 'lucide-react';
+import { TriangleAlert, ReceiptText, CheckCircle2, Trash2, Wallet, Plus, X as CloseIcon, StickyNote } from 'lucide-react';
 
 interface OverdraftManagerProps {
   inflows: Inflow[];
   overdrafts: Overdraft[];
   onAdd: (overdraft: Overdraft) => void;
+  onUpdate: (overdraft: Overdraft) => void;
   onSettle: (overdraftId: string, inflowId: string) => void;
   onDelete: (id: string) => void;
   isAdmin: boolean;
 }
 
-const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts, onAdd, onSettle, onDelete, isAdmin }) => {
+const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts, onAdd, onUpdate, onSettle, onDelete, isAdmin }) => {
   const [showForm, setShowForm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [showSettleModal, setShowSettleModal] = useState<string | null>(null);
+  const [noteModal, setNoteModal] = useState<{ id: string, text: string } | null>(null);
   const [selectedInflowId, setSelectedInflowId] = useState('');
   const [formData, setFormData] = useState({
     purpose: '',
@@ -66,6 +69,8 @@ const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts
   };
 
   const activeOverdrafts = overdrafts.filter(o => !o.isSettled);
+  const settledOverdrafts = overdrafts.filter(o => o.isSettled);
+  const displayedOverdrafts = showHistory ? settledOverdrafts : activeOverdrafts;
 
   return (
     <div className="space-y-8 pb-20 lg:pb-0">
@@ -82,6 +87,14 @@ const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts
           >
             {showForm ? <CloseIcon size={20} /> : <Plus size={20} />}
             <span className="font-black uppercase text-xs tracking-widest">{showForm ? 'Abort' : 'Log External Usage'}</span>
+          </Button>
+        )}
+        {isAdmin && (
+          <Button
+            onClick={() => setShowHistory(!showHistory)}
+            className={`rounded-2xl px-6 h-12 md:h-14 font-bold uppercase text-xs tracking-widest transition-all ${showHistory ? 'bg-slate-800 text-white shadow-xl' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}
+          >
+            {showHistory ? 'Hide History' : 'Show History'}
           </Button>
         )}
       </div>
@@ -165,7 +178,7 @@ const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts
             <div className="p-2 md:p-3 bg-rose-600 text-white rounded-2xl shadow-lg shadow-rose-200">
               <TriangleAlert size={20} />
             </div>
-            <h3 className="font-black text-rose-900 uppercase tracking-[0.2em] text-xs md:text-sm">Active Liabilities (Awaiting Settlement)</h3>
+            <h3 className="font-black text-rose-900 uppercase tracking-[0.2em] text-xs md:text-sm">{showHistory ? 'Settled Liabilities (History)' : 'Active Liabilities (Awaiting Settlement)'}</h3>
           </div>
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full text-left min-w-[850px]">
@@ -179,12 +192,15 @@ const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {activeOverdrafts.map(od => (
+                {displayedOverdrafts.map(od => (
                   <tr key={od.id} className="hover:bg-rose-50/30 transition-all group">
                     <td className="px-10 py-6 text-xs font-bold text-slate-500 whitespace-nowrap">{od.date}</td>
                     <td className="px-10 py-6">
                       <p className="font-black text-slate-900 text-base">{od.seller}</p>
-                      <span className="inline-block mt-2 text-[9px] bg-rose-600 text-white px-3 py-1 rounded-lg font-black uppercase tracking-widest shadow-lg shadow-rose-200">UNSETTLED</span>
+                      <p className="font-black text-slate-900 text-base">{od.seller}</p>
+                      <span className={`inline-block mt-2 text-[9px] px-3 py-1 rounded-lg font-black uppercase tracking-widest shadow-lg ${od.isSettled ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100' : 'bg-rose-600 text-white shadow-rose-200'}`}>
+                        {od.isSettled ? 'LIQUIDATED' : 'UNSETTLED'}
+                      </span>
                     </td>
                     <td className="px-10 py-6 text-sm font-bold text-slate-600 leading-relaxed max-w-xs">{od.purpose}</td>
                     <td className="px-10 py-6 font-mono font-black text-lg text-rose-600 text-right whitespace-nowrap">{od.amount.toLocaleString()} RWF</td>
@@ -197,20 +213,73 @@ const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts
                           >
                             LIQUIDATE
                           </button>
+                          <button
+                            onClick={() => setShowSettleModal(od.id)}
+                            disabled={od.isSettled}
+                            className={`text-[10px] font-black px-5 py-2.5 rounded-2xl transition-all shadow-xl active:scale-95 ${od.isSettled ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none' : 'bg-[#165b4c] text-white hover:bg-slate-900 shadow-[#165b4c]/20'}`}
+                          >
+                            LIQUIDATE
+                          </button>
+                          <button
+                            onClick={() => setNoteModal({ id: od.id, text: od.notes || '' })}
+                            className={`p-3 rounded-xl transition-all ${od.notes ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-slate-300 hover:text-amber-500 hover:bg-amber-50'}`}
+                          >
+                            <StickyNote size={18} />
+                          </button>
                           <button onClick={() => onDelete(od.id)} className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"><Trash2 size={18} /></button>
                         </div>
                       </td>
                     )}
                   </tr>
                 ))}
-                {activeOverdrafts.length === 0 && (
-                  <tr><td colSpan={isAdmin ? 5 : 4} className="px-10 py-24 text-center text-slate-300 font-black uppercase tracking-[0.3em] text-sm italic">Clean Registry: No Active External Liabilities</td></tr>
+                {displayedOverdrafts.length === 0 && (
+                  <tr><td colSpan={isAdmin ? 5 : 4} className="px-10 py-24 text-center text-slate-300 font-black uppercase tracking-[0.3em] text-sm italic">
+                    {showHistory ? 'No Settled Liabilities Found' : 'Clean Registry: No Active External Liabilities'}
+                  </td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      {noteModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md scale-100 animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <StickyNote className="text-rose-600" />
+              Overdraft Notes
+            </h3>
+            <textarea
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[120px] outline-none focus:ring-2 focus:ring-rose-500 text-slate-700 font-medium resize-none shadow-inner"
+              placeholder="e.g. Paid via Check #123..."
+              value={noteModal.text}
+              onChange={e => setNoteModal({ ...noteModal, text: e.target.value })}
+              autoFocus
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setNoteModal(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const item = overdrafts.find(o => o.id === noteModal.id);
+                  if (item) {
+                    onUpdate({ ...item, notes: noteModal.text });
+                  }
+                  setNoteModal(null);
+                }}
+                className="flex-1 py-3 rounded-xl font-bold bg-rose-600 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+              >
+                Save Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
