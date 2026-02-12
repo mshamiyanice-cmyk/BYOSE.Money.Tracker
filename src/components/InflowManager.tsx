@@ -19,6 +19,7 @@ interface InflowManagerProps {
 
 const PRODUCTS = [
   'Service Revenue',
+  'Deposit', // New classification
   'Investment',
   'Donation (Grants)',
   'Refunds',
