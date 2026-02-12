@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Inflow, Outflow } from '../types';
-import { Landmark, ArrowUpRight, ArrowDownLeft, Building2, Wallet } from 'lucide-react';
+import { Landmark, ArrowUpRight, ArrowDownLeft, Building2, Wallet, Trash2, Pencil, X, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
-
+import { db } from '../services/firebase';
+import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { BANK_ACCOUNTS } from '../constants';
 
 interface BankAccountsProps {
@@ -29,6 +30,8 @@ interface BankAccount {
 
 const BankAccounts: React.FC<BankAccountsProps> = ({ inflows, outflows }) => {
     const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [editAccount, setEditAccount] = useState<{ id: string, name: string, number: string } | null>(null);
 
     // Derive accounts from data
     const accountMap = new Map<string, BankAccount>();
@@ -47,6 +50,85 @@ const BankAccounts: React.FC<BankAccountsProps> = ({ inflows, outflows }) => {
             transactions: []
         });
     });
+
+    const isProteched = (acc: BankAccount) => {
+        return BANK_ACCOUNTS.some(p => p.number === acc.number && p.currency === acc.currency);
+    };
+
+    const handleDelete = async (account: BankAccount) => {
+        if (!window.confirm(`Are you sure you want to delete ${account.name}?\n\nThis will delete ALL associated Deposit records. Use with caution!`)) return;
+
+        // Safety check: Don't delete if it has outgoing payments linked
+        const hasOutflows = outflows.some(o => {
+            const inflow = inflows.find(i => i.id === o.inflowId);
+            return inflow && inflow.bankAccountName === account.name && inflow.accountNumber === account.number && inflow.currency === account.currency;
+        });
+
+        if (hasOutflows) {
+            alert("Cannot delete this account because it has Expenses recorded against it. Please delete the expenses first.");
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            const batch = writeBatch(db);
+            const q = query(collection(db, 'inflows'),
+                where('bankAccountName', '==', account.name),
+                where('accountNumber', '==', account.number),
+                where('currency', '==', account.currency)
+            );
+
+            const snapshot = await getDocs(q);
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+            // Refresh logic handled by App.tsx snapshot listener automatically
+            alert("Account and associated records deleted.");
+        } catch (error) {
+            console.error("Error deleting account:", error);
+            alert("Failed to delete account.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleEdit = async () => {
+        if (!editAccount) return;
+
+        // Find original account to know what to query
+        // Actually, we need the original ID to query. 
+        // Let's assume editAccount.id is the key.
+        const [oldName, oldNumber, oldCurrency] = editAccount.id.split('-');
+
+        setIsDeleting(true); // Reuse loading state
+        try {
+            const batch = writeBatch(db);
+            const q = query(collection(db, 'inflows'),
+                where('bankAccountName', '==', oldName),
+                where('accountNumber', '==', oldNumber),
+                where('currency', '==', oldCurrency)
+            );
+
+            const snapshot = await getDocs(q);
+            snapshot.docs.forEach(doc => {
+                batch.update(doc.ref, {
+                    bankAccountName: editAccount.name,
+                    accountNumber: editAccount.number
+                });
+            });
+
+            await batch.commit();
+            setEditAccount(null);
+            alert("Account details updated successfully.");
+        } catch (error) {
+            console.error("Error updating account:", error);
+            alert("Failed to update account.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     // Process Inflows (Deposits)
     inflows.forEach(inf => {
@@ -138,9 +220,29 @@ const BankAccounts: React.FC<BankAccountsProps> = ({ inflows, outflows }) => {
                                 <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-[#165b4c] group-hover:text-white transition-colors">
                                     <Building2 size={24} />
                                 </div>
-                                <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider">
-                                    {acc.currency}
-                                </span>
+                                <div className="flex gap-2 z-20 relative">
+                                    <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider">
+                                        {acc.currency}
+                                    </span>
+                                    {!isProteched(acc) && (
+                                        <>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setEditAccount({ id: acc.id, name: acc.name, number: acc.number }); }}
+                                                className="p-1 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded bg-white shadow-sm border border-slate-100"
+                                                title="Edit Account Details"
+                                            >
+                                                <Pencil size={14} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(acc); }}
+                                                className="p-1 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded bg-white shadow-sm border border-slate-100"
+                                                title="Delete Account"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             <h3 className="text-lg font-bold text-slate-800 mb-1">{acc.name}</h3>
@@ -203,6 +305,50 @@ const BankAccounts: React.FC<BankAccountsProps> = ({ inflows, outflows }) => {
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Account Modal */}
+            {editAccount && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-6">
+                        <h3 className="text-xl font-bold flex items-center gap-2">
+                            <Pencil className="text-blue-500" /> Specify Correct Details
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-400 uppercase">Bank Name</label>
+                                <input
+                                    value={editAccount.name}
+                                    onChange={e => setEditAccount({ ...editAccount, name: e.target.value })}
+                                    className="w-full p-3 bg-slate-50 rounded-xl font-bold border-2 border-transparent focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-slate-400 uppercase">Account Number</label>
+                                <input
+                                    value={editAccount.number}
+                                    onChange={e => setEditAccount({ ...editAccount, number: e.target.value })}
+                                    className="w-full p-3 bg-slate-50 rounded-xl font-bold border-2 border-transparent focus:border-blue-500 outline-none font-mono"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setEditAccount(null)}
+                                className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleEdit}
+                                disabled={isDeleting}
+                                className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200"
+                            >
+                                {isDeleting ? 'Saving...' : 'Save Changes'}
+                            </button>
                         </div>
                     </div>
                 </div>
