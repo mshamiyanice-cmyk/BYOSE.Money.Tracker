@@ -365,16 +365,15 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Amount (RWF)</label>
-              <input
-                type="text" required
-                inputMode="numeric"
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-900 outline-none"
-                value={formData.amount}
-                onChange={handleAmountChange}
-              />
-            </div>
+            {/* Dynamic Amount Display */}
+            {formData.currency === 'USD' && formData.amount && formData.exchangeRate && (
+              <div className="bg-slate-50 p-4 rounded-xl border-l-4 border-rose-500 animate-in fade-in slide-in-from-top-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Equivalent Amount (RWF)</p>
+                <p className="text-2xl font-black text-rose-600 font-mono">
+                  {(parseFloat(formData.amount.replace(/,/g, '')) * parseFloat(formData.exchangeRate)).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-sm text-slate-400">RWF</span>
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Date</label>
