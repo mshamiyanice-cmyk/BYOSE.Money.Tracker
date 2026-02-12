@@ -49,7 +49,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
     description: '',
     paymentMethod: 'Bank' as 'Bank' | 'Momo' | 'Hand in Hand',
     accountNumber: '',
-    currency: 'RWF' as 'RWF' | 'USD'
+    currency: 'RWF' as 'RWF' | 'USD',
+    bankAccountName: ''
   });
 
   const [repayData, setRepayData] = useState({
@@ -86,7 +87,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
       description: inf.description,
       paymentMethod: inf.paymentMethod || 'Bank',
       accountNumber: inf.accountNumber || '',
-      currency: inf.currency || 'RWF'
+      currency: inf.currency || 'RWF',
+      bankAccountName: inf.bankAccountName || ''
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -122,7 +124,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
             description: formData.description,
             paymentMethod: formData.paymentMethod,
             accountNumber: formData.accountNumber,
-            currency: formData.currency
+            currency: formData.currency,
+            bankAccountName: formData.bankAccountName
           });
         }
       } else {
@@ -137,7 +140,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
           description: formData.description,
           paymentMethod: formData.paymentMethod,
           accountNumber: formData.accountNumber,
-          currency: formData.currency
+          currency: formData.currency,
+          bankAccountName: formData.bankAccountName
         });
         console.log("onAdd completed");
       }
@@ -150,7 +154,8 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
         description: '',
         paymentMethod: 'Bank',
         accountNumber: '',
-        currency: 'RWF'
+        currency: 'RWF',
+        bankAccountName: ''
       });
       setShowForm(false);
       setShowForm(false);
@@ -253,48 +258,78 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
               </select>
             </div>
 
-            {/* Payment Method Section */}
-            <div className="space-y-4 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Payment Channel</label>
-                <div className="grid grid-cols-3 gap-3">
-                  <div
-                    onClick={() => setFormData({ ...formData, paymentMethod: 'Bank' })}
-                    className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Bank' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
-                  >
-                    <Landmark size={18} />
-                    <span className="font-bold text-[10px] uppercase">Bank</span>
-                  </div>
-                  <div
-                    onClick={() => setFormData({ ...formData, paymentMethod: 'Momo' })}
-                    className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Momo' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
-                  >
-                    <Smartphone size={18} />
-                    <span className="font-bold text-[10px] uppercase">Momo</span>
-                  </div>
-                  <div
-                    onClick={() => setFormData({ ...formData, paymentMethod: 'Hand in Hand' })}
-                    className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Hand in Hand' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
-                  >
-                    <Hand size={18} />
-                    <span className="font-bold text-[10px] uppercase">Hand in Hand</span>
+            {/* Payment Method / Deposit Details Section */}
+            <div className="space-y-4 md:col-span-2">
+              {formData.product === 'Deposit' ? (
+                <div className="space-y-2 animate-in fade-in slide-in-from-left-4 duration-300">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Bank Account</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="relative">
+                      <Landmark className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none transition-all text-slate-900 font-bold"
+                        value={formData.bankAccountName || ''}
+                        onChange={e => setFormData({ ...formData, bankAccountName: e.target.value })}
+                        placeholder="Bank Name (e.g. Equity Bank)"
+                      />
+                    </div>
+                    <div className="relative">
+                      <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none transition-all text-slate-900 font-bold font-mono"
+                        value={formData.accountNumber}
+                        onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
+                        placeholder="Account Number"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {(formData.paymentMethod === 'Bank' || formData.paymentMethod === 'Momo') && (
-                <div className="space-y-2 animate-in slide-in-from-left-2 duration-300">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      type="text" required
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none transition-all text-slate-900 font-bold font-mono"
-                      value={formData.accountNumber}
-                      onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
-                      placeholder="XXXX-XXXX-XXXX"
-                    />
+              ) : (
+                <div className="space-y-4 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Payment Channel</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div
+                        onClick={() => setFormData({ ...formData, paymentMethod: 'Bank' })}
+                        className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Bank' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                      >
+                        <Landmark size={18} />
+                        <span className="font-bold text-[10px] uppercase">Bank</span>
+                      </div>
+                      <div
+                        onClick={() => setFormData({ ...formData, paymentMethod: 'Momo' })}
+                        className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Momo' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                      >
+                        <Smartphone size={18} />
+                        <span className="font-bold text-[10px] uppercase">Momo</span>
+                      </div>
+                      <div
+                        onClick={() => setFormData({ ...formData, paymentMethod: 'Hand in Hand' })}
+                        className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Hand in Hand' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                      >
+                        <Hand size={18} />
+                        <span className="font-bold text-[10px] uppercase">Hand in Hand</span>
+                      </div>
+                    </div>
                   </div>
+
+                  {(formData.paymentMethod === 'Bank' || formData.paymentMethod === 'Momo') && (
+                    <div className="space-y-2 animate-in slide-in-from-left-2 duration-300">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
+                      <div className="relative">
+                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                          type="text" required
+                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#165b4c]/10 focus:border-[#165b4c] outline-none transition-all text-slate-900 font-bold font-mono"
+                          value={formData.accountNumber}
+                          onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
+                          placeholder="XXXX-XXXX-XXXX"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -385,13 +420,20 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                     </span>
 
                     {/* Payment Method Badge */}
-                    {inf.paymentMethod && (
+                    {inf.product === 'Deposit' ? (
                       <div className="mt-2 flex items-center gap-2 text-xs text-slate-400 font-medium">
-                        {inf.paymentMethod === 'Bank' && <Landmark size={12} />}
-                        {inf.paymentMethod === 'Momo' && <Smartphone size={12} />}
-                        {inf.paymentMethod === 'Hand in Hand' && <Hand size={12} />}
-                        <span>{inf.paymentMethod} {inf.accountNumber ? `• ${inf.accountNumber}` : ''}</span>
+                        <Landmark size={12} />
+                        <span>{inf.bankAccountName || 'Bank Deposit'} {inf.accountNumber ? `• ${inf.accountNumber}` : ''}</span>
                       </div>
+                    ) : (
+                      inf.paymentMethod && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-400 font-medium">
+                          {inf.paymentMethod === 'Bank' && <Landmark size={12} />}
+                          {inf.paymentMethod === 'Momo' && <Smartphone size={12} />}
+                          {inf.paymentMethod === 'Hand in Hand' && <Hand size={12} />}
+                          <span>{inf.paymentMethod} {inf.accountNumber ? `• ${inf.accountNumber}` : ''}</span>
+                        </div>
+                      )
                     )}
                   </td>
                   <td className="px-8 py-5 whitespace-nowrap">

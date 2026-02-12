@@ -11,6 +11,7 @@ export interface Inflow {
   accountNumber?: string;
   notes?: string;
   currency?: 'RWF' | 'USD';
+  bankAccountName?: string;
 }
 
 export interface Outflow {
