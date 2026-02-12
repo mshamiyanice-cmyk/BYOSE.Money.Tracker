@@ -78,6 +78,7 @@ const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts
         setSelectedInflowId('');
       } catch (error) {
         console.error(error);
+        alert("Failed to settle overdraft: " + error);
       } finally {
         setIsSettling(false);
       }
@@ -91,6 +92,7 @@ const OverdraftManager: React.FC<OverdraftManagerProps> = ({ inflows, overdrafts
       await onDelete(id);
     } catch (error) {
       console.error(error);
+      alert("Failed to delete overdraft: " + error);
     } finally {
       setDeletingId(null);
     }
