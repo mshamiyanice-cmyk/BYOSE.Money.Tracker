@@ -7,7 +7,7 @@ export interface Inflow {
   amount: number;
   remainingBalance: number;
   description: string;
-  paymentMethod?: 'Bank' | 'Momo';
+  paymentMethod?: 'Bank' | 'Momo' | 'Hand in Hand';
   accountNumber?: string;
   notes?: string;
   currency?: 'RWF' | 'USD';
@@ -23,7 +23,7 @@ export interface Outflow {
   inflowId: string; // Tracing which specific receipt this money came from
   expenseName?: string; // The specific name of the expense (used for COGS and Misc)
   notes?: string;
-  paymentMethod?: 'Bank' | 'Momo';
+  paymentMethod?: 'Bank' | 'Momo' | 'Hand in Hand';
   accountNumber?: string;
 }
 

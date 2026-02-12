@@ -5,7 +5,7 @@ import { Calendar } from './ui/Calendar';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
 import { generateUUID } from '../lib/utils';
-import { Landmark, Smartphone, CreditCard, StickyNote, Pencil, RefreshCw } from 'lucide-react';
+import { Landmark, Smartphone, CreditCard, StickyNote, Pencil, RefreshCw, Hand } from 'lucide-react';
 
 interface InflowManagerProps {
   inflows: Inflow[];
@@ -46,7 +46,7 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
     amount: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
-    paymentMethod: 'Bank' as 'Bank' | 'Momo',
+    paymentMethod: 'Bank' as 'Bank' | 'Momo' | 'Hand in Hand',
     accountNumber: '',
     currency: 'RWF' as 'RWF' | 'USD'
   });
@@ -256,20 +256,27 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
             <div className="space-y-4 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Payment Channel</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div
                     onClick={() => setFormData({ ...formData, paymentMethod: 'Bank' })}
-                    className={`cursor-pointer px-4 py-3 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all ${formData.paymentMethod === 'Bank' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                    className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Bank' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
                   >
-                    <Landmark size={20} />
-                    <span className="font-bold text-sm">Bank</span>
+                    <Landmark size={18} />
+                    <span className="font-bold text-[10px] uppercase">Bank</span>
                   </div>
                   <div
                     onClick={() => setFormData({ ...formData, paymentMethod: 'Momo' })}
-                    className={`cursor-pointer px-4 py-3 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all ${formData.paymentMethod === 'Momo' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                    className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Momo' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
                   >
-                    <Smartphone size={20} />
-                    <span className="font-bold text-sm">Momo</span>
+                    <Smartphone size={18} />
+                    <span className="font-bold text-[10px] uppercase">Momo</span>
+                  </div>
+                  <div
+                    onClick={() => setFormData({ ...formData, paymentMethod: 'Hand in Hand' })}
+                    className={`cursor-pointer px-2 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${formData.paymentMethod === 'Hand in Hand' ? 'border-[#165b4c] bg-[#165b4c]/5 text-[#165b4c]' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                  >
+                    <Hand size={18} />
+                    <span className="font-bold text-[10px] uppercase">Hand in Hand</span>
                   </div>
                 </div>
               </div>
@@ -379,7 +386,9 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
                     {/* Payment Method Badge */}
                     {inf.paymentMethod && (
                       <div className="mt-2 flex items-center gap-2 text-xs text-slate-400 font-medium">
-                        {inf.paymentMethod === 'Bank' ? <Landmark size={12} /> : <Smartphone size={12} />}
+                        {inf.paymentMethod === 'Bank' && <Landmark size={12} />}
+                        {inf.paymentMethod === 'Momo' && <Smartphone size={12} />}
+                        {inf.paymentMethod === 'Hand in Hand' && <Hand size={12} />}
                         <span>{inf.paymentMethod} {inf.accountNumber ? `• ${inf.accountNumber}` : ''}</span>
                       </div>
                     )}
