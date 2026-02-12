@@ -158,6 +158,10 @@ const BankAccounts: React.FC<BankAccountsProps> = ({ inflows, outflows }) => {
         // Check if it's a bank transaction
         if (inf.product === 'Deposit' || inf.paymentMethod === 'Bank') {
             const bankName = inf.bankAccountName || 'Main Account';
+
+            // EMERGENCY FILTER: Hide Equity Bank immediately
+            if (['Equity Bank', 'Equity bank'].includes(bankName)) return;
+
             const accNum = inf.accountNumber || 'N/A';
             const currency = inf.currency || 'RWF';
             const key = `${bankName}-${accNum}-${currency}`;
