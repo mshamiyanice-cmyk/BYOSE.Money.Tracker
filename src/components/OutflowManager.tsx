@@ -40,8 +40,18 @@ const OutflowManager: React.FC<OutflowManagerProps> = ({ inflows, outflows, onAd
   const isDetailRequired = formData.category === 'Cost of Goods' || formData.category === 'Import' || formData.category === 'Misc';
 
   const formatNumberWithCommas = (val: string) => {
-    const numericValue = val.replace(/[^0-9]/g, '');
-    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    // Remove everything that is not a digit or a dot
+    const cleanVal = val.replace(/[^0-9.]/g, '');
+
+    // Split at the first dot
+    const parts = cleanVal.split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts.length > 1 ? '.' + parts.slice(1).join('') : '';
+
+    // Add commas to integer part
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return formattedInteger + decimalPart;
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {

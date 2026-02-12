@@ -63,8 +63,18 @@ const InflowManager: React.FC<InflowManagerProps> = ({ inflows, onAdd, onUpdate,
   const [balanceEditModal, setBalanceEditModal] = useState<{ id: string, currentBalance: number } | null>(null);
 
   const formatNumberWithCommas = (val: string) => {
-    const numericValue = val.replace(/[^0-9]/g, '');
-    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    // Remove everything that is not a digit or a dot
+    const cleanVal = val.replace(/[^0-9.]/g, '');
+
+    // Split at the first dot
+    const parts = cleanVal.split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts.length > 1 ? '.' + parts.slice(1).join('') : '';
+
+    // Add commas to integer part
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return formattedInteger + decimalPart;
   };
 
   useEffect(() => {
