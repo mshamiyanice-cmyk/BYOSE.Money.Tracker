@@ -298,35 +298,49 @@ const App: React.FC = () => {
   };
 
   const deleteOverdraft = async (id: string) => {
-    if (!isAdmin || !user) return;
-    const overdraftRef = db.collection('companies').doc('byose_tech_main').collection('overdrafts').doc(id);
-    const doc = await overdraftRef.get();
-    if (!doc.exists) return;
-
-    const od = doc.data() as Overdraft;
-
-    // If settled, attempt refund by finding the associated payment outflow
-    if (od.isSettled && od.settledWithInflowId) {
-      // Find outflows that look like this settlement
-      const potentialOutflows = await db.collection('companies').doc('byose_tech_main').collection('outflows')
-        .where('inflowId', '==', od.settledWithInflowId)
-        .where('seller', '==', od.seller)
-        .where('expenseName', '==', 'Overdraft Settle')
-        .get();
-
-      if (!potentialOutflows.empty) {
-        // Found matching payment records (likely just one)
-        // Delete them to refund the pot using existing logic
-        for (const outDoc of potentialOutflows.docs) {
-          await deleteOutflow(outDoc.id);
-        }
-        alert("Associated payment refunded automatically.");
-      } else {
-        alert("Overdraft deleted. Note: Could not find associated payment record to refund automatically.");
-      }
+    if (!isAdmin || !user) {
+      alert("Delete failed: Not authorized.");
+      return;
     }
 
-    await overdraftRef.delete();
+    try {
+      const overdraftRef = db.collection('companies').doc('byose_tech_main').collection('overdrafts').doc(id);
+      const doc = await overdraftRef.get();
+      if (!doc.exists) {
+        alert("Delete failed: Document does not exist.");
+        return;
+      }
+
+      const od = doc.data() as Overdraft;
+
+      // If settled, attempt refund by finding the associated payment outflow
+      if (od.isSettled && od.settledWithInflowId) {
+        // Find outflows that look like this settlement
+        const potentialOutflows = await db.collection('companies').doc('byose_tech_main').collection('outflows')
+          .where('inflowId', '==', od.settledWithInflowId)
+          .where('seller', '==', od.seller)
+          .where('expenseName', '==', 'Overdraft Settle')
+          .get();
+
+        if (!potentialOutflows.empty) {
+          // Found matching payment records (likely just one)
+          // Delete them to refund the pot using existing logic
+          for (const outDoc of potentialOutflows.docs) {
+            await deleteOutflow(outDoc.id);
+          }
+          // alert("Refund processed.");
+        } else {
+          // alert("No associated payment found to refund.");
+        }
+      }
+
+      await overdraftRef.delete();
+      alert("Overdraft deleted successfully.");
+    } catch (e) {
+      console.error("Error in deleteOverdraft:", e);
+      alert("Error in App.tsx deleteOverdraft: " + e);
+      throw e; // Re-throw to trigger the catch block in the UI component
+    }
   };
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-[#165b4c] border-t-transparent rounded-full animate-spin"></div></div>;
