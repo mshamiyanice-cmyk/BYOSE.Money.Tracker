@@ -69,7 +69,26 @@ const App: React.FC = () => {
     return () => { unsubInflows(); unsubOutflows(); unsubOverdrafts(); };
   }, [user?.uid]);
 
-  // ... syncUserProfile ...
+  const syncUserProfile = async (firebaseUser: firebase.User) => {
+    try {
+      // User Profiles remain personal
+      const userDocRef = db.collection('users').doc(firebaseUser.uid);
+      const userDoc = await userDocRef.get();
+      if (userDoc.exists) {
+        setProfile(userDoc.data() as UserProfile);
+      } else {
+        const profileData: UserProfile = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || 'BYOSE Tech Member',
+          email: firebaseUser.email || '',
+          photoFileName: 'default_avatar.png',
+          createdAt: new Date().toISOString()
+        };
+        await userDocRef.set(profileData);
+        setProfile(profileData);
+      }
+    } catch (err) { console.error(err); }
+  };
 
   const handleLogout = async () => { try { await auth.signOut(); } catch (err) { console.error(err); } };
 
