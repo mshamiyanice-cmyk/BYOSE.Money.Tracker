@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { db } from '../services/firebase';
 import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { BANK_ACCOUNTS } from '../constants';
+import { useEffect } from 'react';
 
 interface BankAccountsProps {
     inflows: Inflow[];
@@ -35,6 +36,28 @@ const BankAccounts: React.FC<BankAccountsProps> = ({ inflows, outflows }) => {
 
     // Derive accounts from data
     const accountMap = new Map<string, BankAccount>();
+
+    // CLEANUP SCRIPT: Run once on deploy to remove legacy Equity Bank accounts
+    useEffect(() => {
+        const cleanupEquity = async () => {
+            console.log("Running Live Cleanup for Equity Bank...");
+            const batch = writeBatch(db);
+            const q = query(collection(db, 'inflows'), where('bankAccountName', 'in', ['Equity Bank', 'Equity bank']));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) return;
+
+            snapshot.docs.forEach(doc => {
+                console.log(`Deleting Equity Bank record: ${doc.id}`);
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+            alert("SUCCESS: Deleted old Equity Bank accounts from the live database!");
+        };
+
+        cleanupEquity();
+    }, []);
 
     // Initialize with fixed corporate accounts
     BANK_ACCOUNTS.forEach(acc => {
